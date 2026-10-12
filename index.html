@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pedidos ET</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C8102E">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+/* ============================================================
+   TEMA: variables (claro por defecto, body.dark = tema negro)
+============================================================ */
+:root{
+  --bg:#f0f2f5;
+  --panel:#ffffff;
+  --panel-soft:#f6f8f7;
+  --panel-head:#fff8ea;
+  --quick-list-bg:#fffdf8;
+  --text:#22313f;
+  --text-soft:#7f8c8d;
+  --text-mute:#95a5a6;
+  --border:#e4e9ed;
+  --border-soft:#f0f3f5;
+  --border-input:#dde3e8;
+  --input-bg:#ffffff;
+  --input-dis-bg:#f4f6f5;
+  --input-dis-txt:#95a5a6;
+  --btn-dis-bg:#d5dbdf;
+  --green:#0e7c5a;
+  --green-head:#0e7c5a;
+  --green-text:#0e7c5a;
+  --green-soft:#eef4f1;
+  --green-soft-txt:#0a5c42;
+  --green-border:#bcd9cd;
+  --tipo-bg:#f4f7f5;
+  --tipo-txt:#0e7c5a;
+  --linea-open:#eef6f2;
+  --linea-hover:#f6faf8;
+  --orange:#f39c12;
+  --orange-text:#b9770e;
+  --orange-soft:#fff3dd;
+  --orange-col:#fdf1dc;
+  --orange-col-txt:#b9770e;
+  --orange-col-sub:#caa04a;
+  --orange-border:#f0d9a8;
+  --row-filled:#fffdf5;
+  --red:#c0392b;
+  --red-text:#e74c3c;
+  --red-soft:#fdecea;
+  --red-border:#f5c6c0;
+  --blue-txt:#1a4f8a;
+  --blue-soft:#e8f0fe;
+  --ok-txt:#0a5c42;
+  --ok-soft:#e8f5f0;
+  --vacio-txt:#b0bec5;
+  --vacio-soft:#f0f3f4;
+  --elim-row-bg:#fdf5f4;
+  --toast-bg:#22313f;
+  --toast-txt:#ffffff;
+  --login-grad1:#C8102E;
+  --login-grad2:#8f0b20;
+  --block-grad1:#5d6d7e;
+  --block-grad2:#2e3b4e;
+  --block-list-bg:#f8f9fa;
+  --shadow:0 20px 50px rgba(0,0,0,.25);
+}
+body.dark{
+  --bg:#12181f;
+  --panel:#1a222c;
+  --panel-soft:#202b37;
+  --panel-head:#252017;
+  --quick-list-bg:#171f29;
+  --text:#e8eef4;
+  --text-soft:#9aabb8;
+  --text-mute:#7c8b98;
+  --border:#2b3644;
+  --border-soft:#243040;
+  --border-input:#3a4a5e;
+  --input-bg:#141c26;
+  --input-dis-bg:#1c2531;
+  --input-dis-txt:#5d6e7e;
+  --btn-dis-bg:#3a4756;
+  --green:#12996d;
+  --green-head:#0b684a;
+  --green-text:#2ec894;
+  --green-soft:rgba(18,162,115,.16);
+  --green-soft-txt:#2ec894;
+  --green-border:#1f5c46;
+  --tipo-bg:#1d2b27;
+  --tipo-txt:#2ec894;
+  --linea-open:#1b2f2a;
+  --linea-hover:#212b37;
+  --orange:#f39c12;
+  --orange-text:#f2b34c;
+  --orange-soft:rgba(243,156,18,.16);
+  --orange-col:#2b2416;
+  --orange-col-txt:#f2b34c;
+  --orange-col-sub:#b28a3f;
+  --orange-border:#66512a;
+  --row-filled:#231f15;
+  --red:#e06055;
+  --red-text:#e98074;
+  --red-soft:rgba(192,57,43,.20);
+  --red-border:#6e3a34;
+  --blue-txt:#7fb3f0;
+  --blue-soft:rgba(58,110,190,.25);
+  --ok-txt:#2ec894;
+  --ok-soft:rgba(18,162,115,.18);
+  --vacio-txt:#5d6e7e;
+  --vacio-soft:rgba(255,255,255,.07);
+  --elim-row-bg:#2b1d1c;
+  --toast-bg:#e8eef4;
+  --toast-txt:#12181f;
+  --login-grad1:#a30d24;
+  --login-grad2:#6b0716;
+  --block-grad1:#3c4a5a;
+  --block-grad2:#1d2833;
+  --block-list-bg:#141c26;
+  --shadow:0 20px 50px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100vh;color-scheme:light}
+body.dark{color-scheme:dark}
+.hidden{display:none!important}
+button{cursor:pointer;border:none;border-radius:8px}
+input::placeholder{color:var(--text-mute)}
+
+/* LOGIN */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--login-grad1),var(--login-grad2))}
+.login-box{background:var(--panel);border-radius:16px;padding:36px 32px;width:90%;max-width:360px;text-align:center;box-shadow:var(--shadow)}
+.login-logo{display:block;max-width:170px;margin:0 auto 12px;border-radius:10px}
+.login-box h1{font-size:24px;color:var(--green-text);margin-bottom:6px}
+.login-box p{color:var(--text-soft);font-size:14px;margin-bottom:20px}
+.login-box input{width:100%;padding:12px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:18px;text-transform:uppercase;text-align:center;margin-bottom:14px}
+.login-box input:focus{outline:none;border-color:var(--green)}
+.login-box button.ingresar{width:100%;padding:13px;background:var(--green);color:#fff;font-size:16px;font-weight:600}
+#login-error{color:var(--red-text);font-size:13px;margin-top:10px;min-height:16px}
+.tg-mini{background:var(--panel-soft);color:var(--text-soft);border:1px solid var(--border);padding:8px 14px;font-size:12.5px;font-weight:600;margin-top:14px}
+
+/* BANNER DE CONEXIÓN */
+#net-banner{position:fixed;top:0;left:0;right:0;z-index:90;background:var(--red);color:#fff;padding:9px 14px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);display:none}
+#net-banner.show{display:block}
+
+/* BLOQUEO */
+#block-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--block-grad1),var(--block-grad2));padding:16px}
+.block-box{background:var(--panel);border-radius:16px;padding:32px;width:100%;max-width:440px;text-align:center;box-shadow:var(--shadow)}
+.block-box h1{font-size:20px;color:var(--red);margin-bottom:10px}
+.block-box p{color:var(--text-soft);font-size:14px;margin-bottom:16px;line-height:1.5}
+#block-list{max-height:45vh;overflow-y:auto;text-align:left;background:var(--block-list-bg);border-radius:10px;padding:10px;margin-bottom:16px}
+#block-list h3{font-size:13px;color:var(--text);padding:4px 6px 8px}
+.block-row{display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--border-soft)}
+.block-row:last-child{border-bottom:none}
+.bqty{background:var(--green);color:#fff;min-width:36px;text-align:center;border-radius:6px;font-weight:700;font-size:13px;padding:3px 4px;flex-shrink:0}
+.bname{flex:1;font-size:13px;font-weight:600;text-align:left}
+.bcod{font-size:11px;color:var(--text-mute);font-family:monospace}
+.block-total{font-size:12.5px;font-weight:700;color:var(--green-text);padding:8px 6px 2px;text-align:left}
+.block-exit{width:100%;padding:12px;background:var(--block-grad2);color:#fff;font-size:15px;font-weight:600}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:50;background:var(--green-head);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+header .client{display:flex;align-items:center;gap:10px;min-width:0}
+.head-logo{height:34px;border-radius:6px}
+header .client .c-info{min-width:0}
+header .client small{display:block;font-size:11px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header .client strong{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.header-btns{display:flex;gap:8px;flex-shrink:0}
+header button{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;font-size:13px}
+
+/* CONTENIDO */
+.container{max-width:1200px;margin:0 auto;padding:16px}
+#search{width:100%;padding:13px 16px;border:2px solid var(--border-input);border-radius:12px;background:var(--input-bg);color:var(--text);font-size:15px;margin-bottom:10px}
+#search:focus{outline:none;border-color:var(--green)}
+.toolbar{display:flex;gap:8px;margin-bottom:14px}
+.tool-btn{background:var(--panel);border:1px solid var(--border);color:var(--green-text);padding:8px 14px;font-size:13px;font-weight:600}
+h2{font-size:17px;margin:14px 0 12px;display:flex;align-items:center;gap:8px}
+h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+.section-divider{border:none;border-top:1px dashed var(--border);margin:22px 0 8px}
+.empty-msg{color:var(--text-mute);font-size:13.5px;padding:14px;text-align:center}
+
+/* ====== PANEL DE PEDIDO ====== */
+#quick-box{background:var(--panel);border:2px solid var(--orange);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.quick-head{display:flex;justify-content:space-between;align-items:center;background:var(--panel-head);color:var(--orange-text);padding:11px 14px;font-weight:700;font-size:14.5px}
+.quick-head small{display:block;font-weight:400;font-size:11px;color:var(--orange-col-sub);margin-top:2px}
+.qjornada{color:var(--text-soft);font-size:10.5px}
+.quick-tools{display:flex;gap:8px;padding:0 14px 10px;background:var(--panel-head);flex-wrap:wrap}
+.quick-tools button{background:var(--panel);border:1px solid var(--orange-border);color:var(--orange-text);padding:6px 12px;font-size:12px;font-weight:600;border-radius:6px}
+.quick-tools button.rojo{background:var(--red-soft);color:var(--red);border-color:var(--red-border)}
+#quick-list{max-height:62vh;overflow-y:auto;padding:12px;background:var(--quick-list-bg)}
+.qcols{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.qcol{border:1px solid var(--orange-border);border-radius:10px;overflow:hidden;background:var(--panel)}
+.qcol-title{background:var(--orange-col);color:var(--orange-col-txt);font-size:12px;font-weight:700;padding:8px 12px;text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between;align-items:center}
+.qcol-title small{font-weight:600;font-size:10.5px;color:var(--orange-col-sub)}
+.qcol .qrow:last-child{border-bottom:none}
+.qrow{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-soft);background:var(--panel)}
+.qrow.filled{background:var(--row-filled);box-shadow:inset 3px 0 0 var(--orange)}
+.qin{width:56px;height:36px;text-align:center;font-size:15px;font-weight:700;border:2px solid var(--border-input);border-radius:8px;background:var(--input-bg);color:var(--text);flex-shrink:0;-moz-appearance:textfield}
+.qin::-webkit-outer-spin-button,.qin::-webkit-inner-spin-button{-webkit-appearance:none}
+.qin:focus{outline:none;border-color:var(--orange);background:var(--row-filled)}
+.qin:disabled{background:var(--input-dis-bg);color:var(--input-dis-txt);border-color:var(--border)}
+.qinfo{flex:1;min-width:0}
+.qname{font-size:13.5px;font-weight:600;line-height:1.25}
+.qsub{font-size:11px;color:var(--text-mute)}
+.qsub .cod{font-family:monospace}
+.qdel{background:var(--red-soft);color:var(--red-text);width:26px;height:26px;font-size:12px;font-weight:700;border-radius:6px;flex-shrink:0}
+.qrestore{background:var(--green-soft);color:var(--green-text);width:26px;height:26px;font-size:13px;font-weight:700;border-radius:6px;flex-shrink:0}
+
+/* MARCADORES DE GUARDADO */
+.qsave{width:18px;height:18px;text-align:center;font-size:11px;font-weight:800;line-height:18px;border-radius:5px;flex-shrink:0}
+.qsave.vacio{color:var(--vacio-txt);background:var(--vacio-soft)}
+.qsave.nuevo{color:var(--orange-text);background:var(--orange-soft)}
+.qsave.cambio{color:var(--blue-txt);background:var(--blue-soft)}
+.qsave.ok{color:var(--ok-txt);background:var(--ok-soft)}
+.qsave.eliminado{color:var(--red);background:var(--red-soft)}
+.qrow.eliminado .qname{text-decoration:line-through;color:var(--text-mute)}
+.qrow.eliminado .qsub{color:var(--red-text)}
+.qrow.eliminado{background:var(--elim-row-bg);box-shadow:inset 3px 0 0 var(--red-text)}
+
+.quick-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--panel-soft);border-top:2px solid var(--border-soft);flex-wrap:wrap}
+#quick-total{font-size:13px;font-weight:700}
+#quick-total .pend{color:var(--red);font-weight:800}
+#quick-total .saved{color:var(--ok-txt)}
+.quick-actions{display:flex;gap:8px}
+#btn-csv{background:var(--green-soft);color:var(--green-soft-txt);border:1px solid var(--green-border);padding:11px 16px;font-size:13px;font-weight:700;border-radius:9px}
+#btn-csv:disabled{background:var(--vacio-soft);color:var(--text-mute);border-color:var(--border);cursor:not-allowed}
+#quick-add{background:var(--green);color:#fff;padding:11px 18px;font-size:14px;font-weight:700;border-radius:9px}
+#quick-add:disabled{background:var(--btn-dis-bg);cursor:not-allowed}
+#quick-add.pendiente{background:var(--orange);animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(243,156,18,.55)}50%{box-shadow:0 0 0 9px rgba(243,156,18,0)}}
+
+/* ACORDEÓN CATÁLOGO */
+.linea{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.linea-header{display:flex;align-items:center;gap:10px;padding:14px;cursor:pointer;user-select:none;background:var(--panel)}
+.linea-header:hover{background:var(--linea-hover)}
+.linea.open .linea-header{background:var(--linea-open)}
+.chev{transition:transform .2s;color:var(--green-text);font-size:13px;flex-shrink:0}
+.linea.open .chev{transform:rotate(90deg)}
+.linea-nombre{font-weight:700;font-size:15px;flex:1;min-width:0}
+.linea-meta{font-size:12px;color:var(--text-soft);white-space:nowrap}
+.linea-freq{font-size:11.5px;background:var(--orange-soft);color:var(--orange-text);border-radius:20px;padding:2px 9px;font-weight:700;white-space:nowrap}
+.linea-body{display:none;border-top:1px solid var(--border-soft)}
+.tipo-sub{background:var(--tipo-bg);padding:7px 12px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tipo-txt);display:flex;justify-content:space-between}
+.item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border-soft);background:var(--panel)}
+.item:last-child{border-bottom:none}
+.item.frec{background:var(--row-filled);box-shadow:inset 3px 0 0 var(--orange)}
+.item-info{flex:1;min-width:0}
+.item-nombre{font-size:14px;font-weight:600;line-height:1.3}
+.item-nombre .star{margin-right:2px}
+.item-sub{font-size:11.5px;color:var(--text-mute);margin-top:1px}
+.item-sub .cod{font-family:monospace}
+.cart-mark{color:var(--green-text);font-weight:700}
+.qty-row{display:flex;gap:4px;flex-shrink:0}
+.qty-row button.qty{width:30px;height:30px;background:var(--green-soft);color:var(--green-text);font-size:16px;font-weight:700}
+.qty-row input{width:46px;text-align:center;border:2px solid var(--border-input);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:14px;font-weight:600}
+.item .add-btn{width:38px;height:30px;background:var(--green);color:#fff;font-size:15px;font-weight:700;flex-shrink:0}
+.item.frec .add-btn{background:var(--orange)}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-txt);padding:12px 22px;border-radius:30px;font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<script>
+/* Aplica el tema guardado ANTES del primer dibujado (evita destello blanco) */
+(function(){
+  try{
+    var t = localStorage.getItem('tema') ||
+      (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if(t === 'dark') document.body.classList.add('dark');
+  }catch(e){}
+})();
+</script>
+
+<div id="net-banner"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <img src="logo.png" alt="Grupo ORO" class="login-logo" onerror="this.style.display='none'">
+    <h1>Pedidos Online</h1>
+    <p>Ingrese su código de cliente</p>
+    <input id="client-input" placeholder="Ej: ALM01" autocomplete="off" maxlength="20">
+    <button class="ingresar" onclick="login()">INGRESAR</button>
+    <p id="login-error"></p>
+    <button class="tg-mini" onclick="toggleTema()"><span class="tg-icon">🌙</span> <span class="tg-text">Modo oscuro</span></button>
+  </div>
+</div>
+
+<!-- BLOQUEO -->
+<div id="block-screen" class="hidden">
+  <div class="block-box">
+    <h1>⏸ Pedidos cerrados por hoy</h1>
+    <p>Los pedidos de hoy ya fueron descargados para su preparación.<br>
+       El ingreso se reabre después de la medianoche (00:00).</p>
+    <div id="block-list"></div>
+    <button class="tg-mini" onclick="toggleTema()"><span class="tg-icon">🌙</span> <span class="tg-text">Modo oscuro</span></button>
+    <button class="block-exit" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="hidden">
+  <header>
+    <div class="client">
+      <img src="logo.png" alt="" class="head-logo" onerror="this.style.display='none'">
+      <div class="c-info">
+        <strong id="client-name"></strong>
+        <small id="client-code"></small>
+      </div>
+    </div>
+    <div class="header-btns">
+      <button onclick="toggleTema()" title="Cambiar tema"><span class="tg-icon">🌙</span></button>
+      <button onclick="logout()">Salir</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <input id="search" placeholder="🔍 Buscar por nombre, código, tipo o línea..." oninput="onSearch()">
+
+    <!-- PANEL DE PEDIDO -->
+    <div id="quick-box" class="hidden">
+      <div class="quick-head">
+        <span id="quick-title"></span>
+        <span class="linea-freq" id="quick-count">0</span>
+      </div>
+      <div class="quick-tools">
+        <button onclick="cargarUltimo()">🔄 Repetir último pedido</button>
+        <button onclick="vaciarCarrito()">✕ Vaciar carrito</button>
+        <button id="btn-quitar-todos" class="rojo" onclick="quitarTodosSugeridos()">✕✕ Quitar todos los sugeridos</button>
+        <button id="btn-anular" class="rojo hidden" onclick="anularPedido()">🗑 Anular mi pedido de hoy</button>
+        <button id="btn-ver-todos" class="hidden" onclick="toggleVerTodos()">⭐ Ver todos mis sugeridos</button>
+      </div>
+      <div id="quick-list"></div>
+      <div class="quick-bar">
+        <span id="quick-total"></span>
+        <div class="quick-actions">
+          <button id="btn-csv" onclick="exportarCSV()" disabled>📄 CSV</button>
+          <button id="quick-add" onclick="submitOrder()" disabled>✔ CONFIRMAR PEDIDO</button>
+        </div>
+      </div>
+    </div>
+
+    <hr class="section-divider">
+    <h2>📦 Catálogo por línea <span class="count" id="cat-count"></span></h2>
+    <div class="toolbar">
+      <button class="tool-btn" onclick="expandirTodo()">▾ Expandir todo</button>
+      <button class="tool-btn" onclick="colapsarTodo()">▸ Colapsar todo</button>
+    </div>
+    <div id="lineas-box"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   0) TEMA (claro / negro) — conmutador con memoria
+============================================================ */
+function aplicarTema(t){
+  document.body.classList.toggle('dark', t === 'dark');
+  localStorage.setItem('tema', t);
+  document.querySelectorAll('.tg-icon').forEach(el=>{
+    el.textContent = (t === 'dark') ? '☀️' : '🌙';
+  });
+  document.querySelectorAll('.tg-text').forEach(el=>{
+    el.textContent = (t === 'dark') ? 'Modo claro' : 'Modo oscuro';
+  });
+}
+function toggleTema(){
+  aplicarTema(document.body.classList.contains('dark') ? 'light' : 'dark');
+}
+aplicarTema(document.body.classList.contains('dark') ? 'dark' : 'light');
+
+/* ============================================================
+   1) CONFIGURACIÓN
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBVXEj_H5haEq2p-Z3v8twAsJFvflmMfWA",
+  authDomain: "pedalm-c8d01.firebaseapp.com",
+  databaseURL: "https://pedalm-c8d01-default-rtdb.firebaseio.com",
+  projectId: "pedalm-c8d01",
+  storageBucket: "pedalm-c8d01.firebasestorage.app",
+  messagingSenderId: "92085221518",
+  appId: "1:92085221518:web:db121cc0cdc4f95b6631df",
+  measurementId: "G-TWW8C1GXQZ"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const HORA_CORTE = null;       // Ej: 15 = después de las 15:00 entra a la jornada siguiente
+const SALTAR_FINDES = true;    // sáb/dom se corren al lunes
+const CLIENTE_FIJO = "";       // Ej: "ALM01" para página fija por cliente
+
+/* ============================================================
+   2) ESTADO
+============================================================ */
+let CLIENTE = null, NOMBRE_CLIENTE = '';
+let articulos = {}, carrito = {};
+let ventasSet = new Set();     // sugeridos de la tabla Ventas (ERP)
+let extraSet  = new Set();     // sugeridos agregados por el cliente (PEDIDOS/Frecuentes)
+let excluidosSet = new Set();  // sugeridos del ERP ocultos (PEDIDOS/Excluidos)
+let compras = [], comprasSet = new Set();
+let arbol = {}, lineasOrden = [], lineaEls = {};
+let expandidas = new Set(), autoExp = new Set();
+let pedidoHoy = null;          // pedido guardado en la jornada actual
+let verTodos = false;
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const sanKey = s => String(s).replace(/[.#$\[\]\/]/g, '-');
+const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+/* ============================================================
+   2.B) MODO OFFLINE — caché local + cola de pedidos pendientes
+============================================================ */
+let offline = (typeof navigator.onLine === 'boolean') ? !navigator.onLine : false;
+
+function hayConexion(){
+  return (typeof navigator.onLine === 'boolean') ? navigator.onLine : true;
+}
+function requiereConexion(){
+  if(offline || !hayConexion()){
+    toast('📴 Esta acción requiere conexión a internet');
+    return true;
+  }
+  return false;
+}
+function leerLS(k){
+  try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ return null; }
+}
+function escribirLS(k, v){
+  try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
+}
+
+/* Guarda lo último visto con internet (para trabajar sin conexión) */
+function guardarCacheCliente(ventasList, extraList, exclList){
+  escribirLS('cache_cli_' + CLIENTE, {
+    nombre: NOMBRE_CLIENTE,
+    ventas: ventasList,
+    frecuentes: extraList,
+    excluidos: exclList,
+    cuando: new Date().toLocaleString('es-ES')
+  });
+}
+
+/* Cola de pedidos confirmados sin conexión */
+function pendientes(){ return CLIENTE ? (leerLS('pend_' + CLIENTE) || []) : []; }
+function encolar(payload){
+  const q = pendientes(); q.push(payload); escribirLS('pend_' + CLIENTE, q);
+}
+function quitarDeCola(i){
+  const q = pendientes(); q.splice(i, 1); escribirLS('pend_' + CLIENTE, q);
+}
+
+/* Envía todo lo pendiente en cuanto hay internet */
+async function flushPendientes(silencioso){
+  if(!CLIENTE || !hayConexion()) return;
+  const q = pendientes();
+  if(!q.length){ actualizarBanner(); return; }
+  let enviados = 0, errores = 0;
+  for(let i = q.length - 1; i >= 0; i--){
+    const p = q[i];
+    try{
+      await Promise.all([
+        db.ref('PEDIDOS/Pedidos/' + p.jornada + '/' + CLIENTE).set(p),
+        db.ref('PEDIDOS/Ultimos/' + CLIENTE).set(p)
+      ]);
+      Object.keys(p.items || {}).forEach(c=>{
+        db.ref('PEDIDOS/Frecuentes/' + CLIENTE + '/' + c).set(true).catch(()=>{});
+      });
+      quitarDeCola(i);
+      enviados++;
+    }catch(e){ errores++; }
+  }
+  if(enviados && !silencioso) toast('✔ ' + enviados + ' pedido(s) pendiente(s) enviado(s) correctamente');
+  if(errores) toast('⚠ ' + errores + ' pedido(s) aún sin enviar — se reintentará');
+  actualizarBanner();
+}
+
+function actualizarBanner(){
+  const b = document.getElementById('net-banner');
+  if(!b) return;
+  const n = pendientes().length;
+  if(offline){
+    b.className = 'show';
+    b.textContent = '📴 SIN CONEXIÓN — puede seguir cargando su pedido' +
+      (n ? ' · ' + n + ' pendiente(s) de envío' : '') +
+      '. Se enviará solo al reconectar.';
+  } else if(n){
+    b.className = 'show';
+    b.textContent = '📡 Reenviando ' + n + ' pedido(s) pendiente(s)...';
+    setTimeout(()=>{ if(!offline && !pendientes().length) actualizarBanner(); }, 3000);
+  } else {
+    b.className = '';
+  }
+}
+
+window.addEventListener('online', ()=>{ offline = false; actualizarBanner(); flushPendientes(false); });
+window.addEventListener('offline', ()=>{ offline = true; actualizarBanner(); });
+
+/* ============================================================
+   3) JORNADA + BLOQUEO
+============================================================ */
+function calcularJornada(){
+  const d = new Date();
+  if(HORA_CORTE !== null && d.getHours() >= HORA_CORTE) d.setDate(d.getDate() + 1);
+  if(SALTAR_FINDES){
+    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); // 0=dom, 6=sáb
+  }
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+function formatearJornada(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('es-ES',
+    {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+}
+function fechaLocalISO(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+function estaBloqueado(bloq){
+  return !!(bloq && bloq.descarga && bloq.descarga.fecha &&
+            bloq.descarga.fecha === fechaLocalISO());
+}
+function renderBloqueo(){
+  const el = document.getElementById('block-list');
+  if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
+    let html = '<h3>Su pedido de hoy (solo consulta):</h3>';
+    Object.keys(pedidoHoy.items).forEach(c=>{
+      const it = pedidoHoy.items[c];
+      html += `<div class="block-row">
+        <span class="bqty">${it.cantidad}</span>
+        <span class="bname">${esc(it.ARTICULO || c)}</span>
+        <span class="bcod">${esc(c)}</span>
+      </div>`;
+    });
+    html += `<div class="block-total">Total: ${pedidoHoy.totalItems} bultos · Confirmado: ${esc(pedidoHoy.fecha || '—')}</div>`;
+    el.innerHTML = html;
+  } else {
+    el.innerHTML = '';
+  }
+}
+function activarBloqueo(){
+  document.getElementById('app-screen').classList.add('hidden');
+  renderBloqueo();
+  document.getElementById('block-screen').classList.remove('hidden');
+  toast('Los pedidos de hoy ya fueron descargados');
+}
+
+/* ============================================================
+   4) LOGIN / LOGOUT
+============================================================ */
+async function login(){
+  const cod = sanKey(document.getElementById('client-input').value.trim().toUpperCase());
+  const err = document.getElementById('login-error');
+  if(!cod){ err.textContent = 'Ingrese su código de cliente'; return; }
+
+  /* ---------- SIN CONEXIÓN: valida contra el caché local ---------- */
+  if(offline || !hayConexion()){
+    const cache = leerLS('cache_cli_' + cod);
+    if(cache && cache.nombre){
+      CLIENTE = cod;
+      NOMBRE_CLIENTE = cache.nombre;
+      localStorage.setItem('pedidos_cliente', CLIENTE);
+      startApp();
+    } else {
+      err.textContent = 'Sin conexión y este dispositivo no tiene datos de ese cliente. Conéctese al menos una vez.';
+    }
+    return;
+  }
+
+  err.textContent = 'Verificando...';
+  try{
+    const snap = await db.ref('PEDIDOS/Clientes/' + cod).once('value');
+    const cli = snap.val();
+    if(!cli){ err.textContent = 'Código no registrado. Contáctese con nosotros.'; return; }
+    CLIENTE = cod;
+    NOMBRE_CLIENTE = cli.CLIENTE || cod;
+    localStorage.setItem('pedidos_cliente', CLIENTE);
+    startApp();
+  }catch(e){
+    err.textContent = 'Error de conexión: ' + e.message;
+  }
+}
+function logout(){
+  CLIENTE = null; NOMBRE_CLIENTE = '';
+  localStorage.removeItem('pedidos_cliente');
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('block-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('client-input').value = '';
+  document.getElementById('login-error').textContent = '';
+  actualizarBanner();
+}
+
+/* ============================================================
+   5) CARGA DE DATOS (con caché offline)
+============================================================ */
+async function startApp(){
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('client-name').textContent = NOMBRE_CLIENTE;
+  document.getElementById('client-code').textContent = 'Código: ' + CLIENTE;
+  verTodos = false;
+  offline = !hayConexion();
+  actualizarBanner();
+
+  /* ================== MODO OFFLINE: todo desde el caché ================== */
+  if(offline){
+    const cache = leerLS('cache_cli_' + CLIENTE) || {};
+    const cacheArt = leerLS('cache_art');
+    if(!cacheArt){
+      toast('Sin conexión y sin catálogo guardado en este dispositivo');
+      logout();
+      return;
+    }
+    articulos = cacheArt;
+    const ventasList = cache.ventas || [];
+    const extraList  = cache.frecuentes || [];
+    const exclList   = cache.excluidos || [];
+    ventasSet = new Set(ventasList);
+    extraSet  = new Set(extraList);
+    excluidosSet = new Set(exclList);
+    compras = [...new Set([...ventasList, ...extraList])].filter(c=>!excluidosSet.has(c));
+    comprasSet = new Set(compras);
+
+    /* el "pedido en curso" offline es el último encolado */
+    const q = pendientes();
+    pedidoHoy = q.length ? q[q.length-1] : null;
+    carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
+
+    document.getElementById('app-screen').classList.remove('hidden');
+    construirArbol();
+    renderCatalogo();
+    renderQuick();
+    refreshItemStates();
+    document.getElementById('search').value = '';
+    document.getElementById('cat-count').textContent =
+      lineasOrden.length + ' líneas · ' + Object.keys(articulos).length + ' art. (caché del ' + (cache.cuando || '?') + ')';
+
+    toast('📴 Modo sin conexión — su pedido se enviará al reconectar');
+    setTimeout(()=>{ const f = document.querySelector('#quick-list .qin:not(:disabled)'); if(f) f.focus(); }, 300);
+    return;
+  }
+
+  /* ================== MODO ONLINE (actualiza el caché) ================== */
+  try{
+    const [sArt, sVent, sFrec, sExcl, sHoy, sBloq] = await Promise.all([
+      db.ref('PEDIDOS/Articulos').once('value'),
+      db.ref('PEDIDOS/Ventas').once('value'),
+      db.ref('PEDIDOS/Frecuentes/' + CLIENTE).once('value'),
+      db.ref('PEDIDOS/Excluidos/' + CLIENTE).once('value'),
+      db.ref('PEDIDOS/Pedidos/' + calcularJornada() + '/' + CLIENTE).once('value'),
+      db.ref('PEDIDOS/Bloqueo').once('value')
+    ]);
+    articulos = sArt.val() || {};
+    escribirLS('cache_art', articulos);   // guarda el catálogo para offline
+
+    const ventasList = extraerCompras(sVent.val(), CLIENTE);
+    const extraList  = Object.keys(sFrec.val() || {});
+    const exclList   = Object.keys(sExcl.val() || {});
+    ventasSet = new Set(ventasList);
+    extraSet  = new Set(extraList);
+    excluidosSet = new Set(exclList);
+    compras   = [...new Set([...ventasList, ...extraList])].filter(c=>!excluidosSet.has(c));
+    comprasSet = new Set(compras);
+    guardarCacheCliente(ventasList, extraList, exclList);   // guarda sus datos para offline
+
+    pedidoHoy = sHoy.val();
+    if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
+      carrito = {};
+      Object.keys(pedidoHoy.items).forEach(c=>{
+        carrito[c] = pedidoHoy.items[c].cantidad || 1;
+      });
+      saveCart();
+    } else {
+      pedidoHoy = null;
+      carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
+    }
+
+    if(estaBloqueado(sBloq.val())){
+      activarBloqueo();
+      return;
+    }
+
+    document.getElementById('app-screen').classList.remove('hidden');
+    construirArbol();
+    renderCatalogo();
+    renderQuick();
+    refreshItemStates();
+    document.getElementById('search').value = '';
+    document.getElementById('cat-count').textContent =
+      lineasOrden.length + ' líneas · ' + Object.keys(articulos).length + ' art.';
+
+    toast(pedidoHoy
+      ? '📝 Retomó su pedido en curso — modifíquelo y confirme'
+      : (comprasSet.size ? '¡Hola ' + NOMBRE_CLIENTE + '! Cargue sus cantidades'
+                         : 'Bienvenido ' + NOMBRE_CLIENTE));
+
+    setTimeout(()=>{
+      const first = document.querySelector('#quick-list .qin:not(:disabled)');
+      if(first) first.focus();
+    }, 300);
+
+    /* si quedó algo pendiente de una sesión offline anterior, se envía ahora */
+    flushPendientes(false);
+  }catch(e){
+    toast('Error al cargar datos: ' + e.message);
+    console.error(e);
+  }
+}
+
+function extraerCompras(ventas, cliente){
+  const out = [];
+  if(!ventas || typeof ventas !== 'object') return out;
+  for(const k of Object.keys(ventas)){
+    const reg = ventas[k];
+    if(reg && typeof reg === 'object'){
+      if(reg.CODCLNT !== undefined){
+        if(String(reg.CODCLNT).trim().toUpperCase() === cliente && reg.CODART){
+          out.push(String(reg.CODART));
+        }
+      } else if(k.trim().toUpperCase() === cliente){
+        out.push(...Object.keys(reg));
+      }
+    }
+  }
+  return [...new Set(out)];
+}
+
+/* ============================================================
+   6) SUGERIDOS
+============================================================ */
+function registrarSiNuevo(cod){
+  if(!CLIENTE || !articulos[cod]) return;
+  if(excluidosSet.has(cod)){
+    excluidosSet.delete(cod);
+    db.ref('PEDIDOS/Excluidos/' + CLIENTE + '/' + cod).remove().catch(()=>{});
+  }
+  if(comprasSet.has(cod)){ refrescarArbol(); renderQuick(); return; }
+  comprasSet.add(cod); compras.push(cod); extraSet.add(cod);
+  db.ref('PEDIDOS/Frecuentes/' + CLIENTE + '/' + cod).set(true)
+    .catch(e=>console.error('No se pudo guardar el sugerido:', e));
+  refrescarArbol();
+  renderQuick();
+}
+
+function quitarSugerido(cod){
+  if(requiereConexion()) return;
+  if(extraSet.has(cod)){
+    db.ref('PEDIDOS/Frecuentes/' + CLIENTE + '/' + cod).remove().catch(()=>{});
+    extraSet.delete(cod);
+  }
+  if(ventasSet.has(cod)){
+    db.ref('PEDIDOS/Excluidos/' + CLIENTE + '/' + cod).set(true).catch(()=>{});
+    excluidosSet.add(cod);
+  }
+  comprasSet.delete(cod);
+  compras = compras.filter(c=>c!==cod);
+  refrescarArbol();
+  renderQuick();
+  toast('✕ Quitado de sus sugeridos');
+}
+
+async function quitarTodosSugeridos(){
+  const n = comprasSet.size;
+  if(!n){ toast('No tiene artículos sugeridos'); return; }
+  if(requiereConexion()) return;
+  if(!confirm('¿Quitar TODOS sus artículos sugeridos (' + n + ')?\n\n' +
+      'Los que tenía en el carrito siguen en el panel.\n' +
+      'Podrá volver a agregar artículos desde el catálogo o restaurar los del historial.')) return;
+  try{
+    const tareas = [];
+    if(extraSet.size)
+      tareas.push(db.ref('PEDIDOS/Frecuentes/' + CLIENTE).remove());
+    const excl = {};
+    compras.forEach(c=>{ if(ventasSet.has(c)) excl[c] = true; });
+    if(Object.keys(excl).length)
+      tareas.push(db.ref('PEDIDOS/Excluidos/' + CLIENTE).update(excl));
+    await Promise.all(tareas);
+
+    const enCarrito = Object.keys(carrito).filter(c=>comprasSet.has(c)).length;
+    compras.forEach(c=>{ if(ventasSet.has(c)) excluidosSet.add(c); });
+    extraSet.clear();
+    comprasSet.clear();
+    compras = [];
+
+    refrescarArbol();
+    renderQuick();
+    toast('✕ Se quitaron ' + n + ' sugeridos' +
+          (enCarrito ? ' — los ' + enCarrito + ' del carrito siguen en el panel' : ''));
+  }catch(e){
+    toast('Error: ' + e.message);
+  }
+}
+
+async function restaurarSugeridos(){
+  if(!excluidosSet.size){ toast('No hay sugeridos ocultos que restaurar'); return; }
+  if(requiereConexion()) return;
+  try{
+    await db.ref('PEDIDOS/Excluidos/' + CLIENTE).remove();
+    excluidosSet.clear();
+    compras = [...new Set([...ventasSet, ...extraSet])];
+    comprasSet = new Set(compras);
+    refrescarArbol();
+    renderQuick();
+    toast('↩ Sugeridos del historial restaurados (' + compras.length + ')');
+  }catch(e){
+    toast('Error: ' + e.message);
+  }
+}
+
+function refrescarArbol(){
+  const abiertas = new Set(expandidas);
+  construirArbol();
+  renderCatalogo();
+  abiertas.forEach(l=>{ if(lineaEls[l]) abrirLinea(l, true); });
+  if(queryNorm()) aplicarBusqueda();
+}
+
+/* ============================================================
+   7) ÁRBOL DEL CATÁLOGO
+============================================================ */
+function construirArbol(){
+  arbol = {}; lineasOrden = []; lineaEls = {};
+  expandidas = new Set(); autoExp = new Set();
+
+  for(const a of Object.values(articulos)){
+    const lin = (a.LINEA && String(a.LINEA).trim()) || '(SIN LÍNEA)';
+    const tip = (a.TIPO && String(a.TIPO).trim()) || '(SIN TIPO)';
+    if(!arbol[lin]) arbol[lin] = { tipos:{}, total:0, freq:0 };
+    const L = arbol[lin];
+    if(!L.tipos[tip]) L.tipos[tip] = { arts:[] };
+    L.tipos[tip].arts.push(a);
+    L.total++;
+    if(comprasSet.has(a.CODART)) L.freq++;
+  }
+  for(const lin in arbol){
+    const L = arbol[lin];
+    for(const tip in L.tipos){
+      L.tipos[tip].arts.sort((x,y)=>{
+        const fx = comprasSet.has(x.CODART) ? 0 : 1;
+        const fy = comprasSet.has(y.CODART) ? 0 : 1;
+        return fx - fy || String(x.ARTICULO).localeCompare(String(y.ARTICULO));
+      });
+    }
+    L.ordenTipos = Object.keys(L.tipos).sort((x,y)=>x.localeCompare(y));
+  }
+  lineasOrden = Object.keys(arbol).sort((x,y)=>{
+    const fx = arbol[x].freq > 0 ? 0 : 1;
+    const fy = arbol[y].freq > 0 ? 0 : 1;
+    return fx - fy || x.localeCompare(y);
+  });
+}
+
+/* ============================================================
+   8) ESTADO DE GUARDADO
+   ○ vacio | ● nuevo | ● cambio | ● eliminado | ✔ ok
+============================================================ */
+function estadoGuardado(cod){
+  const guardado = (pedidoHoy && pedidoHoy.items && pedidoHoy.items[cod])
+                    ? (pedidoHoy.items[cod].cantidad || 0) : 0;
+  const actual = carrito[cod] || 0;
+  if(actual === 0 && guardado === 0) return 'vacio';
+  if(actual > 0 && guardado === 0) return 'nuevo';
+  if(actual > 0 && actual !== guardado) return 'cambio';
+  if(actual === 0 && guardado > 0) return 'eliminado';
+  return 'ok';
+}
+
+function cambiosPendientes(){
+  let n=0;
+  const todos = new Set([
+    ...Object.keys(carrito),
+    ...Object.keys((pedidoHoy && pedidoHoy.items) || {})
+  ]);
+  todos.forEach(c=>{
+    const e = estadoGuardado(c);
+    if(e==='nuevo' || e==='cambio' || e==='eliminado') n++;
+  });
+  return { n };
+}
+
+function pintarMarcador(row){
+  const m = row.querySelector('.qsave');
+  if(!m) return;
+  const e = estadoGuardado(row.dataset.cod);
+  if(e==='vacio'){ m.className='qsave vacio'; m.textContent='○'; m.title='Sin cargar'; }
+  else if(e==='nuevo'){ m.className='qsave nuevo'; m.textContent='●'; m.title='Nuevo: aún no está guardado en su pedido'; }
+  else if(e==='cambio'){ m.className='qsave cambio'; m.textContent='●'; m.title='Cantidad modificada: aún no guardada'; }
+  else if(e==='eliminado'){ m.className='qsave eliminado'; m.textContent='●'; m.title='Pendiente de eliminación (no guardado aún)'; }
+  else { m.className='qsave ok'; m.textContent='✔'; m.title='Guardado'; }
+}
+
+/* ============================================================
+   9) PANEL DE PEDIDO
+============================================================ */
+function renderQuick(){
+  const box = document.getElementById('quick-box');
+  const qn = queryNorm();
+
+  const sesionBase = !!(pedidoHoy && Object.keys(carrito).length);
+  const modoSesion = sesionBase && !verTodos;
+
+  document.getElementById('quick-title').innerHTML =
+    (modoSesion ? '📝 Su pedido en curso' : '⭐ Su pedido — habituales por línea') +
+    '<small>' + (modoSesion
+      ? 'Modifique cantidades o quite con ✕. ENTER baja al siguiente'
+      : 'Escriba cantidades: se guardan directo en el carrito. ENTER baja al siguiente') + '</small>' +
+    '<small>○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar</small>' +
+    '<small class="qjornada" id="quick-jornada"></small>';
+  document.getElementById('quick-jornada').textContent =
+    '📅 Recepción: ' + formatearJornada(calcularJornada());
+
+  const btnVT = document.getElementById('btn-ver-todos');
+  btnVT.classList.toggle('hidden', !sesionBase);
+  btnVT.textContent = modoSesion ? '⭐ Ver todos mis sugeridos' : '📝 Ver solo mi pedido en curso';
+
+  let fuente;
+  if(modoSesion){
+    fuente = Object.keys(carrito);
+  } else {
+    fuente = [...compras, ...Object.keys(carrito).filter(c=>!comprasSet.has(c))];
+  }
+
+  const eliminados = [];
+  if(pedidoHoy && pedidoHoy.items){
+    Object.keys(pedidoHoy.items).forEach(c=>{
+      if(!carrito[c]){
+        eliminados.push(articulos[c] || {
+          CODART: c,
+          ARTICULO: pedidoHoy.items[c].ARTICULO || c,
+          TIPO: '', LINEA: '(FUERA DE CATÁLOGO)'
+        });
+      }
+    });
+  }
+
+  const frecs  = fuente.map(c=>articulos[c]).filter(Boolean).filter(a=>!qn || matchArt(a, qn));
+  const elimsF = eliminados.filter(a=>!qn || matchArt(a, qn));
+
+  box.classList.toggle('hidden',
+    frecs.length === 0 && elimsF.length === 0 && comprasSet.size === 0 && !pedidoHoy);
+  document.getElementById('quick-count').textContent = frecs.length;
+
+  if(frecs.length === 0 && elimsF.length === 0){
+    let msg = qn
+      ? 'Ningún artículo coincide con la búsqueda'
+      : 'Sin artículos sugeridos. Use el catálogo de abajo para armar su pedido.';
+    if(!qn && excluidosSet.size){
+      msg += '<br><button class="tool-btn" style="margin-top:12px" onclick="restaurarSugeridos()">↩ Restaurar mis sugeridos del historial</button>';
+    }
+    document.getElementById('quick-list').innerHTML = '<div class="empty-msg">' + msg + '</div>';
+    updateQuickBar();
+    return;
+  }
+
+  const porLinea = {};
+  frecs.forEach(a=>{
+    const lin = a.LINEA || '(SIN LÍNEA)';
+    if(!porLinea[lin]) porLinea[lin] = {arts:[], elims:[]};
+    porLinea[lin].arts.push(a);
+  });
+  elimsF.forEach(a=>{
+    const lin = a.LINEA || '(SIN LÍNEA)';
+    if(!porLinea[lin]) porLinea[lin] = {arts:[], elims:[]};
+    porLinea[lin].elims.push(a);
+  });
+  const lineas = Object.keys(porLinea).sort((x,y)=>{
+    const tx = porLinea[x].arts.length + porLinea[x].elims.length;
+    const ty = porLinea[y].arts.length + porLinea[y].elims.length;
+    return ty - tx || x.localeCompare(y);
+  });
+
+  let html = '<div class="qcols">';
+  lineas.forEach(lin=>{
+    const col = porLinea[lin];
+    const arts = col.arts.sort((a,b)=>
+      String(a.TIPO||'').localeCompare(String(b.TIPO||'')) ||
+      String(a.ARTICULO).localeCompare(String(b.ARTICULO)));
+    html += `<div class="qcol">
+      <div class="qcol-title"><span>${esc(lin)}</span><small>${arts.length}</small></div>`;
+    arts.forEach(a=>{
+      const v = carrito[a.CODART] || '';
+      const enCarrito = !!carrito[a.CODART];
+      const tit = enCarrito ? 'Quitar del pedido' : 'Quitar de sugeridos';
+      html += `
+      <div class="qrow ${v>0 ? 'filled' : ''}" data-cod="${esc(a.CODART)}">
+        <span class="qsave vacio">○</span>
+        <input class="qin" type="number" inputmode="numeric" min="0" placeholder="0" value="${v}">
+        <div class="qinfo">
+          <div class="qname">${esc(a.ARTICULO)}</div>
+          <div class="qsub"><span class="cod">${esc(a.CODART)}</span> · ${esc(a.TIPO || '')}</div>
+        </div>
+        <button class="qdel" title="${tit}">✕</button>
+      </div>`;
+    });
+    col.elims.forEach(a=>{
+      const guardado = (pedidoHoy.items[a.CODART] && pedidoHoy.items[a.CODART].cantidad) || 0;
+      html += `
+      <div class="qrow eliminado" data-cod="${esc(a.CODART)}">
+        <span class="qsave eliminado">●</span>
+        <input class="qin" type="number" value="${guardado}" disabled title="Cantidad guardada">
+        <div class="qinfo">
+          <div class="qname">${esc(a.ARTICULO)}</div>
+          <div class="qsub"><span class="cod">${esc(a.CODART)}</span> · pendiente de eliminación</div>
+        </div>
+        <button class="qrestore" title="Restaurar al pedido">↩</button>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  document.getElementById('quick-list').innerHTML = html;
+
+  document.querySelectorAll('#quick-list .qrow').forEach(row=>{
+    const cod = row.dataset.cod;
+
+    if(row.classList.contains('eliminado')){
+      row.querySelector('.qrestore').onclick = ()=> restaurarItem(cod);
+      return;
+    }
+
+    const inp = row.querySelector('.qin');
+    pintarMarcador(row);
+    inp.onclick = ()=> inp.select();
+    inp.oninput = ()=>{
+      const v = Math.max(0, parseInt(inp.value) || 0);
+      row.classList.toggle('filled', v > 0);
+      setQuickQty(cod, v);
+      pintarMarcador(row);
+    };
+    inp.onkeydown = e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); siguienteQuick(inp); }
+      if(e.key === 'ArrowDown'){ e.preventDefault(); siguienteQuick(inp); }
+      if(e.key === 'ArrowUp'){ e.preventDefault(); anteriorQuick(inp); }
+    };
+    const del = row.querySelector('.qdel');
+    if(del){
+      del.onclick = ()=>{
+        if(carrito[cod]) quitarDelCarrito(cod);
+        else quitarSugerido(cod);
+      };
+    }
+  });
+  updateQuickBar();
+}
+
+function setQuickQty(cod, v){
+  if(v > 0) carrito[cod] = v; else delete carrito[cod];
+  saveCart(); updateQuickBar(); refreshItemStates();
+}
+function quitarDelCarrito(cod){
+  delete carrito[cod];
+  saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
+  toast('✕ Quitado — confirme para que la eliminación quede guardada');
+}
+function restaurarItem(cod){
+  const guardado = (pedidoHoy && pedidoHoy.items && pedidoHoy.items[cod])
+                    ? (pedidoHoy.items[cod].cantidad || 1) : 1;
+  carrito[cod] = guardado;
+  saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
+  toast('↩ Restaurado: ' + (articulos[cod] ? articulos[cod].ARTICULO : cod) + ' — ' + guardado);
+}
+function toggleVerTodos(){
+  verTodos = !verTodos;
+  renderQuick();
+}
+
+function siguienteQuick(cur){
+  const ins = [...document.querySelectorAll('#quick-list .qrow:not(.eliminado) .qin')];
+  const i = ins.indexOf(cur);
+  if(i > -1 && i < ins.length - 1){ ins[i+1].focus(); ins[i+1].select(); }
+  else if(Object.keys(carrito).length) document.getElementById('quick-add').focus();
+}
+function anteriorQuick(cur){
+  const ins = [...document.querySelectorAll('#quick-list .qrow:not(.eliminado) .qin')];
+  const i = ins.indexOf(cur);
+  if(i > 0){ ins[i-1].focus(); ins[i-1].select(); }
+}
+
+function updateQuickBar(){
+  const arts = Object.keys(carrito).length;
+  const bultos = Object.values(carrito).reduce((s,v)=>s+v,0);
+  const p = cambiosPendientes();
+
+  let tot = 'Carrito: ' + arts + ' artículo' + (arts===1?'':'s') +
+            ' · ' + bultos + ' bulto' + (bultos===1?'':'s');
+  if(p.n > 0){
+    tot += ' <span class="pend">⚠ ' + p.n + ' sin guardar</span>';
+  } else if(arts > 0){
+    tot += ' <span class="saved">✔ todo guardado</span>';
+  }
+  document.getElementById('quick-total').innerHTML = tot;
+
+  const btn = document.getElementById('quick-add');
+  btn.disabled = arts === 0 && !pedidoHoy;
+  btn.classList.toggle('pendiente', p.n > 0);
+  btn.textContent = (pedidoHoy ? '💾 ACTUALIZAR PEDIDO' : '✔ CONFIRMAR PEDIDO') +
+                    (p.n > 0 ? ' (' + p.n + ')' : '');
+
+  document.getElementById('btn-csv').disabled = arts === 0;
+  document.getElementById('btn-anular').classList.toggle('hidden', !pedidoHoy);
+  document.getElementById('btn-quitar-todos').classList.toggle('hidden', comprasSet.size === 0);
+}
+
+function vaciarCarrito(){
+  if(!Object.keys(carrito).length){ toast('El carrito ya está vacío'); return; }
+  if(!confirm('¿Vaciar el carrito por completo?' +
+      (pedidoHoy ? '\n(Su pedido guardado queda marcado como "por eliminar" hasta que confirme)'
+                 : '') +
+      '\n(Recuerde confirmar después para que el cambio quede guardado)')) return;
+  carrito = {};
+  saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
+  toast('Carrito vaciado');
+}
+
+async function cargarUltimo(){
+  if(requiereConexion()) return;
+  try{
+    const snap = await db.ref('PEDIDOS/Ultimos/' + CLIENTE).once('value');
+    const ult = snap.val();
+    if(!ult || !ult.items){ toast('Todavía no hay pedidos anteriores para repetir'); return; }
+    const cods = Object.keys(ult.items);
+    const tot = cods.reduce((s,c)=>s+(ult.items[c].cantidad||0),0);
+    if(Object.keys(carrito).length){
+      if(!confirm('Su carrito ya tiene productos.\n\n¿Reemplazarlo por el último pedido (' +
+                  cods.length + ' artículos, ' + tot + ' bultos)?')) return;
+      carrito = {};
+    }
+    cods.forEach(c=>{ carrito[c] = ult.items[c].cantidad || 1; });
+    saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
+    toast('🔄 Último pedido cargado: ' + cods.length + ' artículos, ' + tot + ' bultos');
+  }catch(e){
+    toast('Error: ' + e.message);
+  }
+}
+
+/* ============================================================
+   10) EXPORTAR CSV
+============================================================ */
+function exportarCSV(){
+  const cods = Object.keys(carrito);
+  if(!cods.length){ toast('El carrito está vacío'); return; }
+  const rows = [['CODART','ARTICULO','LINEA','TIPO','CANTIDAD']];
+  cods.forEach(c=>{
+    const a = articulos[c] || {};
+    rows.push([c, a.ARTICULO || '', a.LINEA || '', a.TIPO || '', carrito[c]]);
+  });
+  const csv = '\uFEFF' + rows.map(r=>r.map(v=>{
+    const s = String(v ?? '');
+    return /[";\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'pedido_' + CLIENTE + '_' + calcularJornada() + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('📄 CSV exportado (' + cods.length + ' artículos)');
+}
+
+/* ============================================================
+   11) CATÁLOGO (acordeón)
+============================================================ */
+function renderCatalogo(){
+  const box = document.getElementById('lineas-box');
+  box.innerHTML = lineasOrden.map(lin=>{
+    const L = arbol[lin];
+    return `
+    <div class="linea" data-lin="${esc(lin)}">
+      <div class="linea-header">
+        <span class="chev">▸</span>
+        <span class="linea-nombre">${esc(lin)}</span>
+        ${L.freq ? `<span class="linea-freq">⭐ ${L.freq}</span>` : ''}
+        <span class="linea-meta">${L.total} art.</span>
+      </div>
+      <div class="linea-body"></div>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('.linea').forEach(root=>{
+    lineaEls[root.dataset.lin] = root;
+    root.querySelector('.linea-header').onclick = ()=> toggleLinea(root);
+  });
+}
+function toggleLinea(root){
+  const lin = root.dataset.lin;
+  if(root.classList.contains('open')) cerrarLinea(lin);
+  else abrirLinea(lin, true);
+}
+function abrirLinea(lin, manual){
+  const root = lineaEls[lin]; if(!root) return;
+  renderBody(lin);
+  root.classList.add('open');
+  root.querySelector('.linea-body').style.display = 'block';
+  if(manual){ expandidas.add(lin); autoExp.delete(lin); }
+  else autoExp.add(lin);
+}
+function cerrarLinea(lin){
+  const root = lineaEls[lin]; if(!root) return;
+  root.classList.remove('open');
+  root.querySelector('.linea-body').style.display = 'none';
+  expandidas.delete(lin); autoExp.delete(lin);
+}
+function expandirTodo(){ lineasOrden.forEach(l=>abrirLinea(l, true)); }
+function colapsarTodo(){ lineasOrden.forEach(cerrarLinea); }
+
+function renderBody(lin){
+  const L = arbol[lin]; if(!L) return;
+  const qn = queryNorm();
+  const body = lineaEls[lin].querySelector('.linea-body');
+  let html = '';
+  for(const tip of L.ordenTipos){
+    const arts = L.tipos[tip].arts.filter(a=>!qn || matchArt(a, qn));
+    if(!arts.length) continue;
+    html += `<div class="tipo-sub"><span>${esc(tip)}</span><span>${arts.length}</span></div>`;
+    html += arts.map(a=>itemHTML(a, comprasSet.has(a.CODART))).join('');
+  }
+  body.innerHTML = html || '<div class="empty-msg">Sin coincidencias en esta línea</div>';
+  bindItems(body);
+}
+function itemHTML(a, frec){
+  return `
+  <div class="item ${frec ? 'frec' : ''}" data-cod="${esc(a.CODART)}">
+    <div class="item-info">
+      <div class="item-nombre">${frec ? '<span class="star">⭐</span>' : ''}${esc(a.ARTICULO)}</div>
+      <div class="item-sub"><span class="cod">${esc(a.CODART)}</span> · ${esc(a.TIPO || '')}<span class="cart-mark"></span></div>
+    </div>
+    <div class="qty-row">
+      <button class="qty" data-dir="-1">−</button>
+      <input type="number" inputmode="numeric" min="1" value="1">
+      <button class="qty" data-dir="1">+</button>
+    </div>
+    <button class="add-btn" title="Fijar cantidad en el carrito">✔</button>
+  </div>`;
+}
+function bindItems(container){
+  container.querySelectorAll('.item').forEach(it=>{
+    const cod = it.dataset.cod;
+    const input = it.querySelector('.qty-row input');
+    const n = carrito[cod] || 0;
+    if(n > 0) input.value = n;
+    it.querySelectorAll('button.qty').forEach(b=>{
+      b.onclick = ()=>{ input.value = Math.max(1, (parseInt(input.value)||1) + parseInt(b.dataset.dir)); };
+    });
+    const aplicar = ()=>{
+      const v = Math.max(1, parseInt(input.value)||1);
+      input.value = v;
+      setCatalogQty(cod, v);
+      registrarSiNuevo(cod);
+    };
+    input.onchange = aplicar;
+    it.querySelector('.add-btn').onclick = aplicar;
+  });
+}
+function setCatalogQty(cod, v){
+  carrito[cod] = v;
+  saveCart(); refreshItemStates(); renderQuick();
+  toast('✔ ' + (articulos[cod] ? articulos[cod].ARTICULO : cod) + ' — carrito: ' + v + ' (sin guardar)');
+}
+function refreshItemStates(){
+  document.querySelectorAll('.item').forEach(it=>{
+    const cod = it.dataset.cod;
+    const n = carrito[cod] || 0;
+    const mark = it.querySelector('.cart-mark');
+    if(mark) mark.textContent = n > 0 ? ' · 🛒 ' + n : '';
+    const inp = it.querySelector('.qty-row input');
+    if(inp && document.activeElement !== inp) inp.value = n > 0 ? n : 1;
+  });
+}
+
+/* ============================================================
+   12) BÚSQUEDA
+============================================================ */
+function queryNorm(){ return norm(document.getElementById('search').value.trim()); }
+function matchArt(a, qn){
+  if(!qn) return true;
+  return norm([a.ARTICULO, a.CODART, a.TIPO, a.LINEA].join(' ')).includes(qn);
+}
+let searchTimer;
+function onSearch(){
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(aplicarBusqueda, 180);
+}
+function aplicarBusqueda(){
+  const qn = queryNorm();
+  renderQuick();
+  refreshItemStates();
+  for(const lin of lineasOrden){
+    const L = arbol[lin];
+    const root = lineaEls[lin];
+    const meta = root.querySelector('.linea-meta');
+    if(qn){
+      let n = 0;
+      for(const tip of L.ordenTipos)
+        for(const a of L.tipos[tip].arts) if(matchArt(a, qn)) n++;
+      if(n === 0){ root.style.display = 'none'; continue; }
+      root.style.display = '';
+      meta.textContent = n + ' de ' + L.total;
+      if(root.classList.contains('open')) renderBody(lin);
+      else abrirLinea(lin, false);
+    } else {
+      root.style.display = '';
+      meta.textContent = L.total + ' art.';
+      if(autoExp.has(lin)) cerrarLinea(lin);
+      else if(root.classList.contains('open')) renderBody(lin);
+    }
+  }
+}
+
+/* ============================================================
+   13) CONFIRMAR / ANULAR (sesión única + modo offline)
+============================================================ */
+function saveCart(){ localStorage.setItem('carrito_'+CLIENTE, JSON.stringify(carrito)); }
+
+async function submitOrder(){
+  const cods = Object.keys(carrito);
+
+  if(!cods.length){
+    if(pedidoHoy){
+      if(!confirm('Su carrito está vacío.\n\n¿Guardar el pedido vacío?\n(Equivale a ANULAR su pedido de hoy)')) return;
+      await anularPedidoInterno();
+      return;
+    }
+    toast('El carrito está vacío');
+    return;
+  }
+
+  const jornada = calcularJornada();
+  const items = {};
+  cods.forEach(c=>{
+    items[c] = { ARTICULO: articulos[c] ? articulos[c].ARTICULO : '', cantidad: carrito[c] };
+  });
+  const payload = {
+    jornada: jornada,
+    cliente: CLIENTE,
+    nombreCliente: NOMBRE_CLIENTE,
+    fecha: new Date().toLocaleString('es-ES'),
+    ts: Date.now(),
+    totalItems: cods.reduce((s,c)=>s+carrito[c],0),
+    items: items
+  };
+
+  /* ---------- SIN CONEXIÓN: encola y sigue trabajando ---------- */
+  if(offline || !hayConexion()){
+    encolar(payload);
+    pedidoHoy = payload;   // referencia para los marcadores ✔/●
+    cods.forEach(c=>{
+      if(!comprasSet.has(c)){ comprasSet.add(c); compras.push(c); extraSet.add(c); }
+    });
+    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner();
+    toast('📴 Guardado en este dispositivo — se enviará solo cuando haya internet');
+    return;
+  }
+
+  const btn = document.getElementById('quick-add');
+  btn.disabled = true; btn.textContent = 'ENVIANDO...';
+  try{
+    const sBloq = await db.ref('PEDIDOS/Bloqueo').once('value');
+    if(estaBloqueado(sBloq.val())){
+      activarBloqueo();
+      return;
+    }
+    await Promise.all([
+      db.ref('PEDIDOS/Pedidos/' + jornada + '/' + CLIENTE).set(payload),
+      db.ref('PEDIDOS/Ultimos/' + CLIENTE).set(payload)
+    ]);
+    pedidoHoy = payload;
+    cods.forEach(c=>{
+      if(!comprasSet.has(c)){
+        comprasSet.add(c); compras.push(c); extraSet.add(c);
+        db.ref('PEDIDOS/Frecuentes/' + CLIENTE + '/' + c).set(true).catch(()=>{});
+      }
+    });
+    renderQuick(); refreshItemStates();
+    toast('✔ Pedido guardado — jornada del ' + formatearJornada(jornada));
+  }catch(e){
+    toast('Error: ' + e.message);
+  }finally{
+    updateQuickBar();
+  }
+}
+
+async function anularPedido(){
+  if(!pedidoHoy) return;
+  if(!confirm('¿Anular su pedido guardado de hoy?\nEl pedido se eliminará de la jornada de recepción.')) return;
+  await anularPedidoInterno();
+}
+
+async function anularPedidoInterno(){
+  const jornada = pedidoHoy ? (pedidoHoy.jornada || calcularJornada()) : calcularJornada();
+  /* Sin conexión: el pedido está en la cola local → se quita de ahí */
+  if(offline || !hayConexion()){
+    escribirLS('pend_' + CLIENTE, pendientes().filter(p=>p.jornada !== jornada));
+    pedidoHoy = null;
+    carrito = {};
+    localStorage.removeItem('carrito_'+CLIENTE);
+    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner();
+    toast('🗑 Pedido anulado (sin conexión)');
+    return;
+  }
+  try{
+    await db.ref('PEDIDOS/Pedidos/' + jornada + '/' + CLIENTE).remove();
+    pedidoHoy = null;
+    carrito = {};
+    localStorage.removeItem('carrito_'+CLIENTE);
+    renderQuick(); refreshItemStates(); updateQuickBar();
+    toast('🗑 Pedido de hoy anulado');
+  }catch(e){
+    toast('Error: ' + e.message);
+  }
+}
+
+/* ============================================================
+   14) INICIO
+============================================================ */
+window.addEventListener('load', ()=>{
+  actualizarBanner();
+  if(CLIENTE_FIJO){ CLIENTE = sanKey(CLIENTE_FIJO); precargarNombre(); return; }
+  const guardado = localStorage.getItem('pedidos_cliente');
+  if(guardado){ CLIENTE = guardado; precargarNombre(); }
+  document.getElementById('client-input').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
+});
+
+window.addEventListener('beforeunload', e=>{
+  try{
+    if(CLIENTE && cambiosPendientes().n > 0){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  }catch(_){}
+});
+
+async function precargarNombre(){
+  /* Sin conexión: usa el caché local */
+  if(offline || !hayConexion()){
+    const cache = leerLS('cache_cli_' + CLIENTE);
+    if(cache && cache.nombre){ NOMBRE_CLIENTE = cache.nombre; startApp(); return; }
+    logout();
+    return;
+  }
+  try{
+    const snap = await db.ref('PEDIDOS/Clientes/' + CLIENTE).once('value');
+    const cli = snap.val();
+    if(!cli){ logout(); return; }
+    NOMBRE_CLIENTE = cli.CLIENTE || CLIENTE;
+    startApp();
+  }catch(e){
+    logout();
+  }
+}
+
+/* ============================================================
+   15) PWA: registrar el service worker
+       (solo cuando está alojado con HTTPS — GitHub Pages)
+============================================================ */
+if('serviceWorker' in navigator && location.protocol === 'https:'){
+  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
