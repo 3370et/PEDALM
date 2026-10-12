@@ -1094,11 +1094,9 @@ function anteriorQuick(cur){
 
 function updateQuickBar(){
   const arts = Object.keys(carrito).length;
-  const bultos = Object.values(carrito).reduce((s,v)=>s+v,0);
   const p = cambiosPendientes();
 
-  let tot = 'Carrito: ' + arts + ' artículo' + (arts===1?'':'s') +
-            ' · ' + bultos + ' bulto' + (bultos===1?'':'s');
+  let tot = 'Carrito: ' + arts + ' artículo' + (arts===1?'':'s');
   if(p.n > 0){
     tot += ' <span class="pend">⚠ ' + p.n + ' sin guardar</span>';
   } else if(arts > 0){
@@ -1188,7 +1186,6 @@ function renderCatalogo(){
       <div class="linea-header">
         <span class="chev">▸</span>
         <span class="linea-nombre">${esc(lin)}</span>
-        ${L.freq ? `<span class="linea-freq">⭐ ${L.freq}</span>` : ''}
         <span class="linea-meta">${L.total} art.</span>
       </div>
       <div class="linea-body"></div>
@@ -1198,11 +1195,6 @@ function renderCatalogo(){
     lineaEls[root.dataset.lin] = root;
     root.querySelector('.linea-header').onclick = ()=> toggleLinea(root);
   });
-}
-function toggleLinea(root){
-  const lin = root.dataset.lin;
-  if(root.classList.contains('open')) cerrarLinea(lin);
-  else abrirLinea(lin, true);
 }
 function abrirLinea(lin, manual){
   const root = lineaEls[lin]; if(!root) return;
@@ -1239,7 +1231,7 @@ function itemHTML(a, frec){
   return `
   <div class="item ${frec ? 'frec' : ''}" data-cod="${esc(a.CODART)}">
     <div class="item-info">
-      <div class="item-nombre">${frec ? '<span class="star">⭐</span>' : ''}${esc(a.ARTICULO)}</div>
+      <div class="item-nombre">${esc(a.ARTICULO)}</div>
       <div class="item-sub"><span class="cod">${esc(a.CODART)}</span> · ${esc(a.TIPO || '')}<span class="cart-mark"></span></div>
     </div>
     <div class="qty-row">
