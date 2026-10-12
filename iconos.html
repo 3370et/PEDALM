@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Generador de iconos — Pedidos ET</title>
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#12181f;color:#e8eef4;max-width:640px;margin:0 auto;padding:24px}
+h1{font-size:20px;color:#FFD100}
+canvas{background:#333;border-radius:16px;display:block;margin:16px 0}
+button{background:#C8102E;color:#fff;border:none;border-radius:8px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;margin:4px 8px 4px 0}
+label{font-size:13px;color:#9aabb8;display:block;margin:14px 0 6px}
+p{font-size:13px;color:#9aabb8;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>Generador de iconos — Pedidos ET</h1>
+<p>Así se verá el ícono de la app en el teléfono. Opcional: cargá tu logo real
+para reemplazar los textos GRUPO/ORO. Después descargá los dos PNG y subilos
+al repositorio junto al index.html.</p>
+
+<canvas id="prev" width="512" height="512" style="width:220px;height:220px"></canvas>
+
+<label>Logo real (opcional): <input type="file" id="file-logo" accept="image/png,image/jpeg"></label>
+
+<div>
+<button onclick="descargar(192)">⬇ icon-192.png</button>
+<button onclick="descargar(512)">⬇ icon-512.png</button>
+</div>
+
+<script>
+/* ================== CONFIGURACIÓN (ajustable) ================== */
+const C = {
+  fondo:    '#C8102E',   // rojo del logo
+  amarillo: '#FFD100',   // amarillo de la O
+  naranja:  '#F57C00',   // naranja interior de la O
+  texto:    '#FFFFFF',
+  letras:   'ET',        // ← letras dentro del carrito
+  arriba:   'GRUPO',
+  abajo:    'ORO'
+};
+/* =============================================================== */
+
+let logoImg = null;
+
+document.getElementById('file-logo').onchange = e => {
+  const f = e.target.files[0]; if(!f) return;
+  const img = new Image();
+  img.onload = ()=>{ logoImg = img; dibujarPrev(); };
+  img.src = URL.createObjectURL(f);
+};
+
+function redondo(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function dibujarO(ctx,x,y,r){
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=C.amarillo; ctx.fill();
+  ctx.beginPath(); ctx.arc(x,y,r*0.45,0,Math.PI*2); ctx.fillStyle=C.naranja; ctx.fill();
+}
+
+function dibujarCarrito(ctx,x,y,u){
+  // mango
+  ctx.strokeStyle=C.texto; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.lineWidth=u*0.09;
+  ctx.beginPath();
+  ctx.moveTo(x-u*0.52,y-u*0.44);
+  ctx.lineTo(x-u*0.30,y-u*0.44);
+  ctx.lineTo(x-u*0.15,y+u*0.12);
+  ctx.stroke();
+  // canasta (amarilla, con las letras ET adentro)
+  ctx.beginPath();
+  ctx.moveTo(x-u*0.18,y-u*0.02);
+  ctx.lineTo(x+u*0.50,y-u*0.02);
+  ctx.lineTo(x+u*0.36,y+u*0.40);
+  ctx.lineTo(x-u*0.05,y+u*0.40);
+  ctx.closePath();
+  ctx.fillStyle=C.amarillo; ctx.fill();
+  ctx.lineWidth=u*0.055; ctx.stroke();
+  ctx.fillStyle=C.fondo;
+  ctx.font='900 '+Math.round(u*0.30)+'px Arial';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(C.letras, x+u*0.16, y+u*0.20);
+  // ruedas
+  ctx.fillStyle=C.texto;
+  ctx.beginPath(); ctx.arc(x+u*0.02,y+u*0.55,u*0.075,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+u*0.34,y+u*0.55,u*0.075,0,Math.PI*2); ctx.fill();
+}
+
+function dibujar(canvas, s){
+  canvas.width = canvas.height = s;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,s,s);
+  redondo(ctx,0,0,s,s,s*0.16);
+  ctx.fillStyle=C.fondo; ctx.fill();
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+
+  if(logoImg){
+    // logo real arriba (ajustado sin deformar)
+    const maxW=s*0.62, maxH=s*0.46;
+    const esc=Math.min(maxW/logoImg.width, maxH/logoImg.height);
+    const w=logoImg.width*esc, h=logoImg.height*esc;
+    ctx.drawImage(logoImg, (s-w)/2, s*0.09, w, h);
+    dibujarCarrito(ctx, s/2, s*0.66, s*0.30);
+  } else {
+    // GRUPO
+    ctx.fillStyle=C.texto;
+    ctx.font='bold '+Math.round(s*0.085)+'px Arial';
+    ctx.fillText(C.arriba.split('').join(' '), s/2, s*0.155);
+    // carrito central
+    dibujarCarrito(ctx, s/2, s*0.50, s*0.34);
+    // ORO (las O como círculos, como en el logo)
+    const oy=s*0.855, oR=s*0.052;
+    dibujarO(ctx, s/2 - s*0.113, oy, oR);
+    dibujarO(ctx, s/2 + s*0.113, oy, oR);
+    ctx.fillStyle=C.texto;
+    ctx.font='900 '+Math.round(s*0.115)+'px Arial';
+    ctx.fillText('R', s/2, oy);
+  }
+}
+
+function dibujarPrev(){ dibujar(document.getElementById('prev'), 512); }
+
+function descargar(size){
+  const c=document.createElement('canvas');
+  dibujar(c,size);
+  const a=document.createElement('a');
+  a.href=c.toDataURL('image/png');
+  a.download='icon-'+size+'.png';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+
+dibujarPrev();
+</script>
+</body>
+</html>
