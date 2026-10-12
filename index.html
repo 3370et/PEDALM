@@ -241,7 +241,6 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
 .linea.open .chev{transform:rotate(90deg)}
 .linea-nombre{font-weight:700;font-size:15px;flex:1;min-width:0}
 .linea-meta{font-size:12px;color:var(--text-soft);white-space:nowrap}
-.linea-freq{font-size:11.5px;background:var(--orange-soft);color:var(--orange-text);border-radius:20px;padding:2px 9px;font-weight:700;white-space:nowrap}
 .linea-body{display:none;border-top:1px solid var(--border-soft)}
 .tipo-sub{background:var(--tipo-bg);padding:7px 12px;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--tipo-txt);display:flex;justify-content:space-between}
 .item{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--border-soft);background:var(--panel)}
@@ -249,7 +248,6 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
 .item.frec{background:var(--row-filled);box-shadow:inset 3px 0 0 var(--orange)}
 .item-info{flex:1;min-width:0}
 .item-nombre{font-size:14px;font-weight:600;line-height:1.3}
-.item-nombre .star{margin-right:2px}
 .item-sub{font-size:11.5px;color:var(--text-mute);margin-top:1px}
 .item-sub .cod{font-family:monospace}
 .cart-mark{color:var(--green-text);font-weight:700}
@@ -405,9 +403,9 @@ let ventasSet = new Set();     // sugeridos de la tabla Ventas (ERP)
 let extraSet  = new Set();     // sugeridos agregados por el cliente (PEDIDOS/Frecuentes)
 let excluidosSet = new Set();  // sugeridos del ERP ocultos (PEDIDOS/Excluidos)
 let compras = [], comprasSet = new Set();
-let arbol = {}, lineasOrden = [], lineaEls = {};
-let expandidas = new Set(), autoExp = new Set();
-let pedidoHoy = null;          // pedido guardado en la jornada actual
+let arbol = {}, lineasOrden = [];
+let abiertasManual = new Set();   // líneas que el usuario abrió con clic
+let pedidoHoy = null;             // pedido guardado en la jornada actual
 let verTodos = false;
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -548,7 +546,7 @@ function renderBloqueo(){
         <span class="bcod">${esc(c)}</span>
       </div>`;
     });
-    html += `<div class="block-total">Total: ${pedidoHoy.totalItems} bultos · Confirmado: ${esc(pedidoHoy.fecha || '—')}</div>`;
+    html += `<div class="block-total">Total: ${Object.keys(pedidoHoy.items).length} artículos · Confirmado: ${esc(pedidoHoy.fecha || '—')}</div>`;
     el.innerHTML = html;
   } else {
     el.innerHTML = '';
@@ -637,7 +635,6 @@ async function startApp(){
     compras = [...new Set([...ventasList, ...extraList])].filter(c=>!excluidosSet.has(c));
     comprasSet = new Set(compras);
 
-    /* el "pedido en curso" offline es el último encolado */
     const q = pendientes();
     pedidoHoy = q.length ? q[q.length-1] : null;
     carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
@@ -667,7 +664,7 @@ async function startApp(){
       db.ref('PEDIDOS/Bloqueo').once('value')
     ]);
     articulos = sArt.val() || {};
-    escribirLS('cache_art', articulos);   // guarda el catálogo para offline
+    escribirLS('cache_art', articulos);
 
     const ventasList = extraerCompras(sVent.val(), CLIENTE);
     const extraList  = Object.keys(sFrec.val() || {});
@@ -677,7 +674,7 @@ async function startApp(){
     excluidosSet = new Set(exclList);
     compras   = [...new Set([...ventasList, ...extraList])].filter(c=>!excluidosSet.has(c));
     comprasSet = new Set(compras);
-    guardarCacheCliente(ventasList, extraList, exclList);   // guarda sus datos para offline
+    guardarCacheCliente(ventasList, extraList, exclList);
 
     pedidoHoy = sHoy.val();
     if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
@@ -715,7 +712,6 @@ async function startApp(){
       if(first) first.focus();
     }, 300);
 
-    /* si quedó algo pendiente de una sesión offline anterior, se envía ahora */
     flushPendientes(false);
   }catch(e){
     toast('Error al cargar datos: ' + e.message);
@@ -824,10 +820,18 @@ async function restaurarSugeridos(){
 }
 
 function refrescarArbol(){
-  const abiertas = new Set(expandidas);
+  const abiertas = [];
+  document.querySelectorAll('#lineas-box .linea.open').forEach(r=> abiertas.push(r.dataset.lin));
   construirArbol();
   renderCatalogo();
-  abiertas.forEach(l=>{ if(lineaEls[l]) abrirLinea(l, true); });
+  document.querySelectorAll('#lineas-box .linea').forEach(root=>{
+    if(abiertas.indexOf(root.dataset.lin) !== -1){
+      renderBody(root);
+      root.classList.add('open');
+      root.querySelector('.linea-body').style.display = 'block';
+      abiertasManual.add(root.dataset.lin);
+    }
+  });
   if(queryNorm()) aplicarBusqueda();
 }
 
@@ -835,8 +839,8 @@ function refrescarArbol(){
    7) ÁRBOL DEL CATÁLOGO
 ============================================================ */
 function construirArbol(){
-  arbol = {}; lineasOrden = []; lineaEls = {};
-  expandidas = new Set(); autoExp = new Set();
+  arbol = {}; lineasOrden = [];
+  abiertasManual = new Set();
 
   for(const a of Object.values(articulos)){
     const lin = (a.LINEA && String(a.LINEA).trim()) || '(SIN LÍNEA)';
@@ -1133,15 +1137,14 @@ async function cargarUltimo(){
     const ult = snap.val();
     if(!ult || !ult.items){ toast('Todavía no hay pedidos anteriores para repetir'); return; }
     const cods = Object.keys(ult.items);
-    const tot = cods.reduce((s,c)=>s+(ult.items[c].cantidad||0),0);
     if(Object.keys(carrito).length){
       if(!confirm('Su carrito ya tiene productos.\n\n¿Reemplazarlo por el último pedido (' +
-                  cods.length + ' artículos, ' + tot + ' bultos)?')) return;
+                  cods.length + ' artículos)?')) return;
       carrito = {};
     }
     cods.forEach(c=>{ carrito[c] = ult.items[c].cantidad || 1; });
     saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
-    toast('🔄 Último pedido cargado: ' + cods.length + ' artículos, ' + tot + ' bultos');
+    toast('🔄 Último pedido cargado: ' + cods.length + ' artículos');
   }catch(e){
     toast('Error: ' + e.message);
   }
@@ -1175,7 +1178,7 @@ function exportarCSV(){
 }
 
 /* ============================================================
-   11) CATÁLOGO (acordeón)
+   11) CATÁLOGO (acordeón — clic por delegación de eventos)
 ============================================================ */
 function renderCatalogo(){
   const box = document.getElementById('lineas-box');
@@ -1191,32 +1194,49 @@ function renderCatalogo(){
       <div class="linea-body"></div>
     </div>`;
   }).join('');
-  box.querySelectorAll('.linea').forEach(root=>{
-    lineaEls[root.dataset.lin] = root;
-    root.querySelector('.linea-header').onclick = ()=> toggleLinea(root);
+
+  /* Delegación de eventos: UN solo listener sobre el contenedor.
+     El clic en cualquier encabezado funciona siempre, aunque el
+     catálogo se vuelva a renderear */
+  box.onclick = e=>{
+    const header = e.target.closest('.linea-header');
+    if(!header) return;
+    const root = header.closest('.linea');
+    if(root) toggleLinea(root);
+  };
+}
+
+function toggleLinea(root){
+  const lin = root.dataset.lin;
+  const abrir = !root.classList.contains('open');
+  root.classList.toggle('open', abrir);
+  root.querySelector('.linea-body').style.display = abrir ? 'block' : 'none';
+  if(abrir){ renderBody(root); abiertasManual.add(lin); }
+  else     { abiertasManual.delete(lin); }
+}
+
+function expandirTodo(){
+  document.querySelectorAll('#lineas-box .linea').forEach(root=>{
+    renderBody(root);
+    root.classList.add('open');
+    root.querySelector('.linea-body').style.display = 'block';
+    abiertasManual.add(root.dataset.lin);
   });
 }
-function abrirLinea(lin, manual){
-  const root = lineaEls[lin]; if(!root) return;
-  renderBody(lin);
-  root.classList.add('open');
-  root.querySelector('.linea-body').style.display = 'block';
-  if(manual){ expandidas.add(lin); autoExp.delete(lin); }
-  else autoExp.add(lin);
+function colapsarTodo(){
+  document.querySelectorAll('#lineas-box .linea').forEach(root=>{
+    root.classList.remove('open');
+    root.querySelector('.linea-body').style.display = 'none';
+  });
+  abiertasManual.clear();
 }
-function cerrarLinea(lin){
-  const root = lineaEls[lin]; if(!root) return;
-  root.classList.remove('open');
-  root.querySelector('.linea-body').style.display = 'none';
-  expandidas.delete(lin); autoExp.delete(lin);
-}
-function expandirTodo(){ lineasOrden.forEach(l=>abrirLinea(l, true)); }
-function colapsarTodo(){ lineasOrden.forEach(cerrarLinea); }
 
-function renderBody(lin){
-  const L = arbol[lin]; if(!L) return;
+function renderBody(root){
+  const lin = root.dataset.lin;
+  const L = arbol[lin];
+  const body = root.querySelector('.linea-body');
+  if(!L){ body.innerHTML = ''; return; }
   const qn = queryNorm();
-  const body = lineaEls[lin].querySelector('.linea-body');
   let html = '';
   for(const tip of L.ordenTipos){
     const arts = L.tipos[tip].arts.filter(a=>!qn || matchArt(a, qn));
@@ -1227,6 +1247,7 @@ function renderBody(lin){
   body.innerHTML = html || '<div class="empty-msg">Sin coincidencias en esta línea</div>';
   bindItems(body);
 }
+
 function itemHTML(a, frec){
   return `
   <div class="item ${frec ? 'frec' : ''}" data-cod="${esc(a.CODART)}">
@@ -1242,6 +1263,7 @@ function itemHTML(a, frec){
     <button class="add-btn" title="Fijar cantidad en el carrito">✔</button>
   </div>`;
 }
+
 function bindItems(container){
   container.querySelectorAll('.item').forEach(it=>{
     const cod = it.dataset.cod;
@@ -1294,26 +1316,36 @@ function aplicarBusqueda(){
   const qn = queryNorm();
   renderQuick();
   refreshItemStates();
-  for(const lin of lineasOrden){
+
+  document.querySelectorAll('#lineas-box .linea').forEach(root=>{
+    const lin = root.dataset.lin;
     const L = arbol[lin];
-    const root = lineaEls[lin];
+    if(!L) return;
     const meta = root.querySelector('.linea-meta');
+
     if(qn){
       let n = 0;
       for(const tip of L.ordenTipos)
         for(const a of L.tipos[tip].arts) if(matchArt(a, qn)) n++;
-      if(n === 0){ root.style.display = 'none'; continue; }
+      if(n === 0){ root.style.display = 'none'; return; }
       root.style.display = '';
       meta.textContent = n + ' de ' + L.total;
-      if(root.classList.contains('open')) renderBody(lin);
-      else abrirLinea(lin, false);
+      renderBody(root);                                  // contenido filtrado
+      root.classList.add('open');                        // auto-abierta por la búsqueda
+      root.querySelector('.linea-body').style.display = 'block';
     } else {
       root.style.display = '';
       meta.textContent = L.total + ' art.';
-      if(autoExp.has(lin)) cerrarLinea(lin);
-      else if(root.classList.contains('open')) renderBody(lin);
+      if(abiertasManual.has(lin)){                       // abierta por el usuario: queda abierta
+        renderBody(root);
+        root.classList.add('open');
+        root.querySelector('.linea-body').style.display = 'block';
+      } else {                                           // las auto-abiertas por búsqueda se cierran
+        root.classList.remove('open');
+        root.querySelector('.linea-body').style.display = 'none';
+      }
     }
-  }
+  });
 }
 
 /* ============================================================
