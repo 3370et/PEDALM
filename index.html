@@ -293,8 +293,7 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
 <div id="block-screen" class="hidden">
   <div class="block-box">
     <h1>⏸ Pedidos cerrados por hoy</h1>
-    <p>Los pedidos de hoy ya fueron descargados para su preparación.<br>
-       El ingreso se reabre después de la medianoche (00:00).</p>
+    <p id="block-msg"></p>
     <div id="block-list"></div>
     <button class="tg-mini" onclick="toggleTema()"><span class="tg-icon">🌙</span> <span class="tg-text">Modo oscuro</span></button>
     <button class="block-exit" onclick="logout()">Salir</button>
@@ -531,8 +530,12 @@ function fechaLocalISO(){
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 function estaBloqueado(bloq){
-  return !!(bloq && bloq.descarga && bloq.descarga.fecha &&
-            bloq.descarga.fecha === fechaLocalISO());
+  if(!bloq || !bloq.descarga) return false;
+  const d = bloq.descarga;
+  // Con temporizador (bloqueo desde el monitor): exactamente hasta esa hora
+  if(typeof d.hastaTs === 'number') return Date.now() < d.hastaTs;
+  // Bloqueo por fecha (macro de descarga): hasta medianoche
+  return !!(d.fecha && d.fecha === fechaLocalISO());
 }
 function renderBloqueo(){
   const el = document.getElementById('block-list');
@@ -552,11 +555,21 @@ function renderBloqueo(){
     el.innerHTML = '';
   }
 }
-function activarBloqueo(){
+function activarBloqueo(bloq){
   document.getElementById('app-screen').classList.add('hidden');
   renderBloqueo();
+  const p = document.getElementById('block-msg');
+  const d = bloq && bloq.descarga;
+  if(d && typeof d.hastaTs === 'number' && Date.now() < d.hastaTs){
+    p.innerHTML = 'Los pedidos están cerrados temporalmente.<br>' +
+      'El ingreso se reabre a las ' +
+      new Date(d.hastaTs).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) + '.';
+  } else {
+    p.innerHTML = 'Los pedidos de hoy ya fueron descargados para su preparación.<br>' +
+      'El ingreso se reabre después de la medianoche (00:00).';
+  }
   document.getElementById('block-screen').classList.remove('hidden');
-  toast('Los pedidos de hoy ya fueron descargados');
+  toast('El ingreso de pedidos está cerrado');
 }
 
 /* ============================================================
