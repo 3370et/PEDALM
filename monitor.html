@@ -15,7 +15,7 @@
   --input-bg:#fff; --green:#0e7c5a; --green-head:#0e7c5a; --green-text:#0e7c5a;
   --green-soft:#eef4f1; --green-border:#bcd9cd; --tipo-bg:#f4f7f5;
   --orange:#f39c12; --orange-text:#b9770e; --orange-soft:#fff3dd;
-  --red:#c0392b; --red-text:#e74c3c; --red-soft:#fdecea;
+  --red:#c0392b; --red-text:#e74c3c; --red-soft:#fdecea; --red-border:#f5c6c0;
   --ok-txt:#0a5c42; --ok-soft:#e8f5f0;
   --toast-bg:#22313f; --toast-txt:#fff;
 }
@@ -25,7 +25,7 @@ body.dark{
   --input-bg:#141c26; --green:#12996d; --green-head:#0b684a; --green-text:#2ec894;
   --green-soft:rgba(18,162,115,.16); --green-border:#1f5c46; --tipo-bg:#1d2b27;
   --orange:#f39c12; --orange-text:#f2b34c; --orange-soft:rgba(243,156,18,.16);
-  --red:#e06055; --red-text:#e98074; --red-soft:rgba(192,57,43,.20);
+  --red:#e06055; --red-text:#e98074; --red-soft:rgba(192,57,43,.20); --red-border:#6e3a34;
   --ok-txt:#2ec894; --ok-soft:rgba(18,162,115,.18);
   --toast-bg:#e8eef4; --toast-txt:#12181f;
 }
@@ -90,6 +90,10 @@ tr.rowp:hover{background:var(--panel-soft)}
 .det-row td{background:var(--tipo-bg);padding:8px 12px 12px 44px;font-size:12.5px}
 .det-cli{display:inline-flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 10px;margin:3px 4px 0 0}
 .det-cli b{color:var(--green-text)}
+/* Cabecera de línea de producto (clicable → copia el detalle) */
+.lin-head td{background:var(--tipo-bg);padding:10px 12px;cursor:pointer;user-select:none}
+.lin-head:hover td{filter:brightness(.97)}
+.lin-head .hint{color:var(--text-mute);font-weight:400;font-size:11.5px}
 
 .clientes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 .ccard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
@@ -104,7 +108,7 @@ tr.rowp:hover{background:var(--panel-soft)}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
 
-/* ===== MODALES (bloqueo y estado de clientes) ===== */
+/* ===== MODALES ===== */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.35);max-height:88vh;overflow-y:auto}
 .modal h3{margin-bottom:8px;font-size:17px;display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -267,12 +271,13 @@ const ADMIN_PIN = "";
    2) ESTADO
 ============================================================ */
 let tab = 'cons';
+let ordenCons = 'linea';      // 'linea' | 'total' — orden del consolidado
 let selFecha = '';
-let data = {};              // cliente → pedido de la jornada
+let data = {};                // cliente → pedido de la jornada
 let prevTs = {};
 let primeraCarga = true;
-let artInfo = {};           // catálogo
-let clientesReg = {};       // clientes registrados
+let artInfo = {};             // catálogo
+let clientesReg = {};         // clientes registrados
 let refPed = null, refBloq = null;
 let bloqVal = null;
 
@@ -511,7 +516,7 @@ function detectarCambios(){
 }
 
 /* ============================================================
-   7) LISTAS DE CLIENTES (con / sin pedido)
+   7) LISTAS DE CLIENTES (con / sin pedido) + COPIADO
 ============================================================ */
 function cliConPedido(){
   return Object.keys(data).sort((a,b)=>
@@ -573,6 +578,31 @@ function copiarLista(tipo){
   copiarTexto(txt, tipo === 'con' ? 'con pedido' : 'sin pedido');
 }
 
+/* Copia el detalle de UNA LÍNEA de producto completa */
+function copiarLinea(lin){
+  const cons = consolidar().filter(m=> (m.linea || '(SIN LÍNEA)') === lin);
+  if(!cons.length) return;
+
+  let txt = lin.toUpperCase() + ' — pedidos del ' + selFecha + '\n';
+  cons
+    .sort((x,y)=> y.total - x.total)
+    .forEach(m=>{
+      txt += '\n' + m.art + ' (' + m.cod + ') — TOTAL: ' + m.total + '\n';
+      m.clientes.forEach(c=>{
+        txt += '   • ' + c.cant + ' — ' + c.nombre + ' (' + c.cli + ')\n';
+      });
+    });
+  const und = cons.reduce((s,m)=>s+m.total,0);
+  txt += '\nTotal línea: ' + cons.length + ' artículos · ' + und + ' unidades';
+
+  const done = ()=> toast('📋 Línea "' + lin + '" copiada (' + cons.length + ' artículos)');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
+  } else {
+    fallbackCopiar(txt, done);
+  }
+}
+
 function copiarTexto(txt, que){
   const done = ()=> toast('📋 Lista de clientes ' + que + ' copiada — pegue donde necesite');
   if(navigator.clipboard && navigator.clipboard.writeText){
@@ -617,7 +647,7 @@ function consolidar(){
     });
   });
   Object.values(map).forEach(m=> m.clientes.sort((x,y)=> y.cant - x.cant));
-  return Object.values(map).sort((x,y)=> y.total - x.total);
+  return Object.values(map);
 }
 
 function qn(){ return norm(document.getElementById('search').value.trim()); }
@@ -664,6 +694,7 @@ function render(){
   renderClientes();
 }
 
+/* ===== CONSOLIDADO: agrupado por línea (cabecera clicable → copia) ===== */
 function renderConsolidado(cons){
   const el = document.getElementById('sec-cons');
   const q = qn();
@@ -679,24 +710,78 @@ function renderConsolidado(cons){
     return;
   }
 
-  el.innerHTML = `
-  <table>
-    <tr><th>CODART</th><th>ARTÍCULO</th><th>LÍNEA</th><th style="text-align:right">TOTAL</th><th style="text-align:right">CLIENTES</th></tr>
-    ${lista.map(m=>`
-      <tr class="rowp" data-cod="${esc(m.cod)}" onclick="toggleDet(this)">
-        <td class="cod">${esc(m.cod)}</td>
-        <td><b>${esc(m.art)}</b></td>
-        <td style="font-size:12px;color:var(--text-soft)">${esc(m.linea)}</td>
-        <td class="num">${m.total}</td>
-        <td class="num">${m.ncli}</td>
-      </tr>
-      <tr class="det-row hidden" data-det="${esc(m.cod)}">
-        <td colspan="5">
-          ${m.clientes.map(c=>`<span class="det-cli"><b>${c.cant}</b> ${esc(c.nombre)} <span class="cod">${esc(c.cli)}</span></span>`).join('')}
-        </td>
-      </tr>`).join('')}
-  </table>
-  <p style="font-size:11.5px;color:var(--text-mute);margin-top:8px">💡 Clic en una fila para ver qué cliente pidió cada artículo</p>`;
+  /* Orden de presentación */
+  let filas = [...lista];
+  if(ordenCons === 'linea'){
+    filas.sort((x,y)=>{
+      const c = String(x.linea || 'ZZZ').localeCompare(String(y.linea || 'ZZZ'));
+      if(c !== 0) return c;
+      return (y.total - x.total) || String(x.art).localeCompare(String(y.art));
+    });
+  } else {
+    filas.sort((x,y)=> (y.total - x.total) || String(x.art).localeCompare(String(y.art)));
+  }
+
+  const icoLin = ordenCons === 'linea' ? ' ▾' : '';
+  const icoTot = ordenCons === 'total' ? ' ▾' : '';
+
+  let html = `<table>
+    <tr>
+      <th>CODART</th><th>ARTÍCULO</th>
+      <th style="cursor:pointer" onclick="setOrdenCons('linea')">LÍNEA${icoLin}</th>
+      <th style="text-align:right;cursor:pointer" onclick="setOrdenCons('total')">TOTAL${icoTot}</th>
+      <th style="text-align:right">CLIENTES</th>
+    </tr>`;
+
+  if(ordenCons === 'linea'){
+    let linAnterior = null;
+    filas.forEach(m=>{
+      const lin = m.linea || '(SIN LÍNEA)';
+      if(lin !== linAnterior){
+        /* Escapa la línea para usarla dentro del onclick */
+        const linArg = lin.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        html += `<tr class="lin-head" onclick="copiarLinea('${linArg}')" title="Clic para copiar el detalle de esta línea">
+          <td colspan="5" style="padding:10px 12px">
+            <b>${esc(lin.toUpperCase())}</b>
+            <span class="hint"> 📋 copiar detalle</span>
+          </td></tr>`;
+        linAnterior = lin;
+      }
+      html += filaConsHTML(m);
+    });
+  } else {
+    filas.forEach(m=>{ html += filaConsHTML(m); });
+  }
+
+  html += '</table>' +
+    '<p style="font-size:11.5px;color:var(--text-mute);margin-top:8px">' +
+    (ordenCons === 'linea'
+      ? '💡 Clic en la cabecera de LÍNEA para copiar su detalle · clic en un artículo para ver clientes'
+      : '💡 Ordenado por total — clic en LÍNEA para volver a agrupar por línea de producto') +
+    '</p>';
+
+  el.innerHTML = html;
+}
+
+function filaConsHTML(m){
+  return `
+  <tr class="rowp" data-cod="${esc(m.cod)}" onclick="toggleDet(this)">
+    <td class="cod">${esc(m.cod)}</td>
+    <td><b>${esc(m.art)}</b></td>
+    <td style="font-size:12px;color:var(--text-soft)">${esc(m.linea)}</td>
+    <td class="num">${m.total}</td>
+    <td class="num">${m.ncli}</td>
+  </tr>
+  <tr class="det-row hidden" data-det="${esc(m.cod)}">
+    <td colspan="5">
+      ${m.clientes.map(c=>`<span class="det-cli"><b>${c.cant}</b> ${esc(c.nombre)} <span class="cod">${esc(c.cli)}</span></span>`).join('')}
+    </td>
+  </tr>`;
+}
+
+function setOrdenCons(o){
+  ordenCons = o;
+  render();
 }
 
 function toggleDet(row){
@@ -704,6 +789,7 @@ function toggleDet(row){
   if(det) det.classList.toggle('hidden');
 }
 
+/* ===== POR CLIENTE ===== */
 function renderClientes(){
   const el = document.getElementById('sec-cli');
   const q = qn();
@@ -753,11 +839,17 @@ function exportCSV(){
   let rows = [], nombre = '';
 
   if(tab === 'cons'){
+    /* Mantiene el orden por línea (coherente con la vista) */
     const cons = consolidar().filter(m=> !q ||
       norm(m.art + ' ' + m.cod + ' ' + m.linea).includes(q));
     if(!cons.length){ toast('Nada que exportar'); return; }
-    rows.push(['CODART','ARTICULO','LINEA','TIPO','TOTAL','CLIENTES']);
-    cons.forEach(m=> rows.push([m.cod, m.art, m.linea, m.tipo, m.total, m.ncli]));
+    cons.sort((x,y)=>{
+      const c = String(x.linea || 'ZZZ').localeCompare(String(y.linea || 'ZZZ'));
+      if(c !== 0) return c;
+      return (y.total - x.total) || String(x.art).localeCompare(String(y.art));
+    });
+    rows.push(['LINEA','CODART','ARTICULO','TIPO','TOTAL','CLIENTES']);
+    cons.forEach(m=> rows.push([m.linea, m.cod, m.art, m.tipo, m.total, m.ncli]));
     nombre = 'consolidado_' + selFecha + '.csv';
   } else {
     let clis = Object.keys(data);
