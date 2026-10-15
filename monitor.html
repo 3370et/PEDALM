@@ -59,11 +59,19 @@ header button{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;font-
 #btn-lock{background:var(--red);color:#fff;padding:11px 18px;font-size:13.5px;font-weight:700;border-radius:10px}
 #btn-unlock{background:var(--green);color:#fff;padding:11px 18px;font-size:13.5px;font-weight:700;border-radius:10px}
 
+/* ===== TARJETAS (la de clientes es clicable) ===== */
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
 .card .k{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);font-weight:700}
 .card .v{font-size:24px;font-weight:800;margin-top:2px}
 .card .s{font-size:11px;color:var(--text-mute)}
+.card.link{cursor:pointer;border:2px solid transparent;transition:.15s}
+.card.link:hover{border-color:var(--green);transform:translateY(-1px)}
+.card.link .s{color:var(--green-text);font-weight:700}
+
+/* Barra de clientes sin pedido → abre el panel */
+.sin-pedido{background:var(--orange-soft);color:var(--orange-text);border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:14px;display:none;cursor:pointer;transition:.15s}
+.sin-pedido:hover{filter:brightness(.96)}
 
 .toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .tab{background:var(--panel);border:1px solid var(--border);color:var(--text-soft);padding:9px 16px;font-size:13.5px;font-weight:700;border-radius:9px}
@@ -71,9 +79,6 @@ header button{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;font-
 #search{flex:1;min-width:180px;padding:10px 14px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:14px}
 #search:focus{outline:none;border-color:var(--green)}
 .csv-btn{background:var(--green-soft);color:var(--green-text);border:1px solid var(--green-border);padding:10px 14px;font-size:12.5px;font-weight:700;border-radius:9px}
-
-.sin-pedido{background:var(--orange-soft);color:var(--orange-text);border-radius:10px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none}
-.sin-pedido b{cursor:pointer}
 
 table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:13.5px}
 th{background:var(--tipo-bg);color:var(--green-text);text-align:left;padding:10px 12px;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0}
@@ -99,11 +104,13 @@ tr.rowp:hover{background:var(--panel-soft)}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
 
-/* ===== MODAL DE BLOQUEO ===== */
+/* ===== MODALES (bloqueo y estado de clientes) ===== */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
-.modal{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
-.modal h3{margin-bottom:8px;font-size:17px}
+.modal{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.35);max-height:88vh;overflow-y:auto}
+.modal h3{margin-bottom:8px;font-size:17px;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .modal .sub{font-size:13px;color:var(--text-soft);margin-bottom:14px;line-height:1.4}
+.close-x{background:none;font-size:22px;color:var(--text-mute);padding:0 4px}
+.close-x:hover{color:var(--red)}
 .opt{display:flex;align-items:center;gap:10px;background:var(--panel-soft);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:600}
 .opt:hover{border-color:var(--red)}
 .opt input{accent-color:var(--red);width:17px;height:17px}
@@ -111,6 +118,21 @@ tr.rowp:hover{background:var(--panel-soft)}
 .mbtns{display:flex;gap:8px;margin-top:14px}
 .mbtn-cancel{flex:1;padding:12px;background:var(--panel-soft);border:1px solid var(--border);color:var(--text-soft);font-size:14px;font-weight:700;border-radius:10px}
 .mbtn-ok{flex:1;padding:12px;background:var(--red);color:#fff;font-size:14px;font-weight:700;border-radius:10px}
+
+/* ===== PANEL ESTADO DE CLIENTES ===== */
+.sec-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:16px 0 8px}
+.sec-tit{font-size:14px;font-weight:800}
+.sec-tit.ok{color:var(--ok-txt)}
+.sec-tit.pend{color:var(--orange-text)}
+.copy-btn{background:var(--green-soft);color:var(--green-text);border:1px solid var(--green-border);padding:8px 13px;font-size:12px;font-weight:700;border-radius:8px}
+.copy-btn.rojo{background:var(--red-soft);color:var(--red);border-color:var(--red-border)}
+.copy-btn:hover{filter:brightness(.95)}
+.cli-list{max-height:30vh;overflow-y:auto;background:var(--panel-soft);border:1px solid var(--border);border-radius:10px;padding:6px}
+.cli-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border-soft);font-size:13px}
+.cli-item:last-child{border-bottom:none}
+.cli-item .n{font-weight:700}
+.cli-item .c{font-family:monospace;font-size:11px;color:var(--text-mute)}
+.cli-item .m{font-size:11px;color:var(--text-soft);white-space:nowrap}
 
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-txt);padding:12px 22px;border-radius:30px;font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
 #toast.show{opacity:1}
@@ -153,13 +175,17 @@ tr.rowp:hover{background:var(--panel-soft)}
   </div>
 
   <div class="cards">
-    <div class="card"><div class="k">Clientes con pedido</div><div class="v" id="c-cli">0</div><div class="s" id="c-sin">—</div></div>
+    <div class="card link" onclick="abrirCliModal()" title="Ver detalle de clientes con y sin pedido">
+      <div class="k">Clientes con pedido</div>
+      <div class="v" id="c-cli">0</div>
+      <div class="s" id="c-sin">— · clic para detalle</div>
+    </div>
     <div class="card"><div class="k">Artículos distintos</div><div class="v" id="c-art">0</div></div>
     <div class="card"><div class="k">Unidades totales</div><div class="v" id="c-uni">0</div></div>
     <div class="card"><div class="k">Última confirmación</div><div class="v" id="c-ult" style="font-size:17px">—</div></div>
   </div>
 
-  <div class="sin-pedido" id="sin-pedido"></div>
+  <div class="sin-pedido" id="sin-pedido" onclick="abrirCliModal()"></div>
 
   <div class="toolbar">
     <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
@@ -190,6 +216,28 @@ tr.rowp:hover{background:var(--panel-soft)}
   </div>
 </div>
 
+<!-- MODAL ESTADO DE CLIENTES (con y sin pedido + copiar) -->
+<div id="cli-modal" class="modal-bg hidden" onclick="if(event.target===this)cerrarCliModal()">
+  <div class="modal" style="max-width:480px">
+    <h3>📋 Estado de clientes
+      <button class="close-x" onclick="cerrarCliModal()">✕</button>
+    </h3>
+    <p class="sub" id="cli-modal-fecha"></p>
+
+    <div class="sec-head">
+      <span class="sec-tit ok">✅ Con pedido (<span id="n-con">0</span>)</span>
+      <button class="copy-btn" onclick="copiarLista('con')">📋 Copiar lista</button>
+    </div>
+    <div class="cli-list" id="list-con"></div>
+
+    <div class="sec-head">
+      <span class="sec-tit pend">⏳ Sin pedido (<span id="n-sin">0</span>)</span>
+      <button class="copy-btn rojo" onclick="copiarLista('sin')">📋 Copiar lista</button>
+    </div>
+    <div class="cli-list" id="list-sin"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -212,8 +260,7 @@ const db = firebase.database();
 const HORA_CORTE = null;
 const SALTAR_FINDES = true;
 
-/* PIN de acceso al monitor y a las acciones de bloqueo.
-   "" = sin pin. Recomendado ponerlo: ej "1234" */
+/* PIN de acceso al monitor y acciones de bloqueo. "" = sin pin */
 const ADMIN_PIN = "";
 
 /* ============================================================
@@ -221,13 +268,13 @@ const ADMIN_PIN = "";
 ============================================================ */
 let tab = 'cons';
 let selFecha = '';
-let data = {};
+let data = {};              // cliente → pedido de la jornada
 let prevTs = {};
 let primeraCarga = true;
-let artInfo = {};
-let clientesReg = {};
+let artInfo = {};           // catálogo
+let clientesReg = {};       // clientes registrados
 let refPed = null, refBloq = null;
-let bloqVal = null;          // último valor de PEDIDOS/Bloqueo
+let bloqVal = null;
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -271,7 +318,6 @@ function formatearFecha(iso){
   return new Date(y, m-1, d).toLocaleDateString('es-ES',
     {weekday:'long', day:'2-digit', month:'short'});
 }
-/* Timestamp de la próxima hora h:m (si ya pasó hoy → mañana) */
 function tsHora(h, m){
   const d = new Date();
   d.setHours(h, m, 0, 0);
@@ -305,11 +351,8 @@ function verificarPin(){
 }
 
 /* ============================================================
-   5) BLOQUEO: estado en vivo + acciones
+   5) BLOQUEO: estado en vivo + acciones con temporizador
 ============================================================ */
-/* Mismo criterio que la app del cliente:
-   - con hastaTs → vigente exactamente hasta esa hora (temporizadores)
-   - sin hastaTs → bloqueo por fecha de la macro, hasta medianoche   */
 function pintarBloqueo(){
   const el = document.getElementById('lock');
   const bL = document.getElementById('btn-lock');
@@ -406,7 +449,6 @@ async function init(){
   await armarFechas();
   escuchar(selFecha);
 
-  /* Estado del bloqueo, en vivo + contador cada segundo */
   refBloq = db.ref('PEDIDOS/Bloqueo');
   refBloq.on('value', s=>{
     bloqVal = s.val();
@@ -469,7 +511,90 @@ function detectarCambios(){
 }
 
 /* ============================================================
-   7) CÁLCULOS Y RENDER
+   7) LISTAS DE CLIENTES (con / sin pedido)
+============================================================ */
+function cliConPedido(){
+  return Object.keys(data).sort((a,b)=>
+    (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
+}
+function cliSinPedido(){
+  return Object.keys(clientesReg).filter(c=>!data[c]).sort((a,b)=>
+    (clientesReg[a].CLIENTE||a).localeCompare(clientesReg[b].CLIENTE||b));
+}
+
+function abrirCliModal(){
+  document.getElementById('cli-modal-fecha').textContent =
+    'Jornada: ' + selFecha + ' — ' + formatearFecha(selFecha);
+  renderCliModal();
+  document.getElementById('cli-modal').classList.remove('hidden');
+}
+function cerrarCliModal(){
+  document.getElementById('cli-modal').classList.add('hidden');
+}
+
+function renderCliModal(){
+  const con = cliConPedido();
+  const sin = cliSinPedido();
+  document.getElementById('n-con').textContent = con.length;
+  document.getElementById('n-sin').textContent = sin.length;
+
+  /* --- con pedido --- */
+  document.getElementById('list-con').innerHTML = con.length ? con.map(c=>{
+    const p = data[c];
+    const items = Object.keys(p.items||{});
+    const uni = items.reduce((s,i)=> s + (p.items[i].cantidad||0), 0);
+    return `<div class="cli-item">
+      <span class="n">${esc(p.nombreCliente||c)} <span class="c">${esc(c)}</span></span>
+      <span class="m">${items.length} art · ${uni} und · ${esc(p.fecha||'—')}</span>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:14px">Ningún cliente confirmó aún</div>';
+
+  /* --- sin pedido --- */
+  document.getElementById('list-sin').innerHTML = sin.length ? sin.map(c=>{
+    return `<div class="cli-item">
+      <span class="n">${esc(clientesReg[c].CLIENTE||c)} <span class="c">${esc(c)}</span></span>
+      <span class="m">sin pedido</span>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:14px">🎉 Todos los clientes registrados pidieron</div>';
+}
+
+/* Copiado de listas (portapapeles con fallback) */
+function copiarLista(tipo){
+  let txt;
+  if(tipo === 'con'){
+    const con = cliConPedido();
+    txt = 'Clientes CON pedido (' + con.length + ') — ' + selFecha + ':\n' +
+      con.map(c=> (data[c].nombreCliente||c) + ' (' + c + ')').join(', ');
+  } else {
+    const sin = cliSinPedido();
+    txt = 'Clientes SIN pedido (' + sin.length + ') — ' + selFecha + ':\n' +
+      sin.map(c=> (clientesReg[c].CLIENTE||c) + ' (' + c + ')').join(', ');
+  }
+  copiarTexto(txt, tipo === 'con' ? 'con pedido' : 'sin pedido');
+}
+
+function copiarTexto(txt, que){
+  const done = ()=> toast('📋 Lista de clientes ' + que + ' copiada — pegue donde necesite');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
+  } else {
+    fallbackCopiar(txt, done);
+  }
+}
+function fallbackCopiar(txt, done){
+  const ta = document.createElement('textarea');
+  ta.value = txt;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); done(); }
+  catch(e){ toast('No se pudo copiar automáticamente — seleccione y copie manualmente'); }
+  ta.remove();
+}
+
+/* ============================================================
+   8) CÁLCULOS Y RENDER
 ============================================================ */
 function consolidar(){
   const map = {};
@@ -518,17 +643,22 @@ function render(){
   document.getElementById('c-ult').textContent = ultTs
     ? new Date(ultTs).toLocaleTimeString('es-ES') + ' · ' + ultCli : '—';
 
-  const sinPedido = Object.keys(clientesReg).filter(c=> !data[c]);
+  /* barra de clientes sin pedido → abre el panel de estado */
+  const sinPedido = Object.keys(clientesReg).filter(c=>!data[c]);
   const sp = document.getElementById('sin-pedido');
-  if(sinPedido.length && clis.length){
-    sp.style.display = '';
-    sp.innerHTML = '⏳ <b onclick="this.parentNode.querySelector(\'span\').classList.toggle(\'hidden\')">Clientes sin pedido (' + sinPedido.length + ') — ver</b>' +
-      '<span class="hidden"> &nbsp;' + sinPedido.map(c=> esc(clientesReg[c].CLIENTE || c)).join(' · ') + '</span>';
+  sp.style.display = '';
+  if(sinPedido.length){
+    sp.innerHTML = '⏳ <b>' + sinPedido.length + ' cliente(s) sin pedido</b> — clic para ver detalle y copiar listas';
+  } else if(Object.keys(clientesReg).length){
+    sp.innerHTML = '🎉 <b>Todos los clientes registrados pidieron</b> — clic para ver detalle';
   } else {
     sp.style.display = 'none';
   }
   document.getElementById('c-sin').textContent =
-    sinPedido.length ? sinPedido.length + ' sin pedir' : 'todos pidieron';
+    sinPedido.length ? sinPedido.length + ' sin pedir · clic' : 'todos pidieron · clic';
+
+  /* si el panel de clientes está abierto, refrescalo en vivo */
+  if(!document.getElementById('cli-modal').classList.contains('hidden')) renderCliModal();
 
   renderConsolidado(cons);
   renderClientes();
@@ -616,7 +746,7 @@ function renderClientes(){
 }
 
 /* ============================================================
-   8) EXPORTAR CSV
+   9) EXPORTAR CSV
 ============================================================ */
 function exportCSV(){
   const q = qn();
