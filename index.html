@@ -150,7 +150,7 @@ input::placeholder{color:var(--text-mute)}
 #block-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,var(--block-grad1),var(--block-grad2));padding:16px}
 .block-box{background:var(--panel);border-radius:16px;padding:32px;width:100%;max-width:440px;text-align:center;box-shadow:var(--shadow)}
 .block-box h1{font-size:20px;color:var(--red);margin-bottom:10px}
-.block-box p{color:var(--text-soft);font-size:14px;margin-bottom:16px;line-height:1.5}
+#block-msg{color:var(--text-soft);font-size:14px;margin-bottom:16px;line-height:1.5}
 #block-list{max-height:45vh;overflow-y:auto;text-align:left;background:var(--block-list-bg);border-radius:10px;padding:10px;margin-bottom:16px}
 #block-list h3{font-size:13px;color:var(--text);padding:4px 6px 8px}
 .block-row{display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--border-soft)}
@@ -292,7 +292,7 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
 <!-- BLOQUEO -->
 <div id="block-screen" class="hidden">
   <div class="block-box">
-    <h1>⏸ Pedidos cerrados por hoy</h1>
+    <h1>⏸ Pedidos cerrados</h1>
     <p id="block-msg"></p>
     <div id="block-list"></div>
     <button class="tg-mini" onclick="toggleTema()"><span class="tg-icon">🌙</span> <span class="tg-text">Modo oscuro</span></button>
@@ -406,6 +406,7 @@ let arbol = {}, lineasOrden = [];
 let abiertasManual = new Set();   // líneas que el usuario abrió con clic
 let pedidoHoy = null;             // pedido guardado en la jornada actual
 let verTodos = false;
+let desbloqTimer = null;          // reingreso automático cuando expira el temporizador
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const sanKey = s => String(s).replace(/[.#$\[\]\/]/g, '-');
@@ -441,7 +442,6 @@ function escribirLS(k, v){
   try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
 }
 
-/* Guarda lo último visto con internet (para trabajar sin conexión) */
 function guardarCacheCliente(ventasList, extraList, exclList){
   escribirLS('cache_cli_' + CLIENTE, {
     nombre: NOMBRE_CLIENTE,
@@ -452,7 +452,6 @@ function guardarCacheCliente(ventasList, extraList, exclList){
   });
 }
 
-/* Cola de pedidos confirmados sin conexión */
 function pendientes(){ return CLIENTE ? (leerLS('pend_' + CLIENTE) || []) : []; }
 function encolar(payload){
   const q = pendientes(); q.push(payload); escribirLS('pend_' + CLIENTE, q);
@@ -461,7 +460,6 @@ function quitarDeCola(i){
   const q = pendientes(); q.splice(i, 1); escribirLS('pend_' + CLIENTE, q);
 }
 
-/* Envía todo lo pendiente en cuanto hay internet */
 async function flushPendientes(silencioso){
   if(!CLIENTE || !hayConexion()) return;
   const q = pendientes();
@@ -508,7 +506,7 @@ window.addEventListener('online', ()=>{ offline = false; actualizarBanner(); flu
 window.addEventListener('offline', ()=>{ offline = true; actualizarBanner(); });
 
 /* ============================================================
-   3) JORNADA + BLOQUEO
+   3) JORNADA + BLOQUEO (compatible con temporizador del monitor)
 ============================================================ */
 function calcularJornada(){
   const d = new Date();
@@ -529,14 +527,17 @@ function fechaLocalISO(){
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
+
+/* Bloqueo:
+   - Con hastaTs (temporizadores del monitor): vigente hasta esa hora exacta
+   - Sin hastaTs (bloqueo por fecha de la macro): hasta medianoche */
 function estaBloqueado(bloq){
   if(!bloq || !bloq.descarga) return false;
   const d = bloq.descarga;
-  // Con temporizador (bloqueo desde el monitor): exactamente hasta esa hora
   if(typeof d.hastaTs === 'number') return Date.now() < d.hastaTs;
-  // Bloqueo por fecha (macro de descarga): hasta medianoche
   return !!(d.fecha && d.fecha === fechaLocalISO());
 }
+
 function renderBloqueo(){
   const el = document.getElementById('block-list');
   if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
@@ -555,15 +556,29 @@ function renderBloqueo(){
     el.innerHTML = '';
   }
 }
+
 function activarBloqueo(bloq){
   document.getElementById('app-screen').classList.add('hidden');
   renderBloqueo();
+
   const p = document.getElementById('block-msg');
   const d = bloq && bloq.descarga;
   if(d && typeof d.hastaTs === 'number' && Date.now() < d.hastaTs){
     p.innerHTML = 'Los pedidos están cerrados temporalmente.<br>' +
       'El ingreso se reabre a las ' +
       new Date(d.hastaTs).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) + '.';
+    /* Reingreso automático: cuando expira el temporizador, vuelve a entrar solo */
+    if(desbloqTimer === null){
+      const falta = d.hastaTs - Date.now();
+      desbloqTimer = setTimeout(async ()=>{
+        desbloqTimer = null;
+        if(!CLIENTE) return;
+        try{
+          const s = await db.ref('PEDIDOS/Bloqueo').once('value');
+          if(!estaBloqueado(s.val())) startApp();
+        }catch(e){}
+      }, falta + 2000);
+    }
   } else {
     p.innerHTML = 'Los pedidos de hoy ya fueron descargados para su preparación.<br>' +
       'El ingreso se reabre después de la medianoche (00:00).';
@@ -609,6 +624,7 @@ async function login(){
 }
 function logout(){
   CLIENTE = null; NOMBRE_CLIENTE = '';
+  if(desbloqTimer){ clearTimeout(desbloqTimer); desbloqTimer = null; }
   localStorage.removeItem('pedidos_cliente');
   document.getElementById('app-screen').classList.add('hidden');
   document.getElementById('block-screen').classList.add('hidden');
@@ -623,6 +639,8 @@ function logout(){
 ============================================================ */
 async function startApp(){
   document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('block-screen').classList.add('hidden');
+  if(desbloqTimer){ clearTimeout(desbloqTimer); desbloqTimer = null; }
   document.getElementById('client-name').textContent = NOMBRE_CLIENTE;
   document.getElementById('client-code').textContent = 'Código: ' + CLIENTE;
   verTodos = false;
@@ -702,7 +720,7 @@ async function startApp(){
     }
 
     if(estaBloqueado(sBloq.val())){
-      activarBloqueo();
+      activarBloqueo(sBloq.val());
       return;
     }
 
@@ -1208,9 +1226,6 @@ function renderCatalogo(){
     </div>`;
   }).join('');
 
-  /* Delegación de eventos: UN solo listener sobre el contenedor.
-     El clic en cualquier encabezado funciona siempre, aunque el
-     catálogo se vuelva a renderear */
   box.onclick = e=>{
     const header = e.target.closest('.linea-header');
     if(!header) return;
@@ -1343,17 +1358,17 @@ function aplicarBusqueda(){
       if(n === 0){ root.style.display = 'none'; return; }
       root.style.display = '';
       meta.textContent = n + ' de ' + L.total;
-      renderBody(root);                                  // contenido filtrado
-      root.classList.add('open');                        // auto-abierta por la búsqueda
+      renderBody(root);
+      root.classList.add('open');
       root.querySelector('.linea-body').style.display = 'block';
     } else {
       root.style.display = '';
       meta.textContent = L.total + ' art.';
-      if(abiertasManual.has(lin)){                       // abierta por el usuario: queda abierta
+      if(abiertasManual.has(lin)){
         renderBody(root);
         root.classList.add('open');
         root.querySelector('.linea-body').style.display = 'block';
-      } else {                                           // las auto-abiertas por búsqueda se cierran
+      } else {
         root.classList.remove('open');
         root.querySelector('.linea-body').style.display = 'none';
       }
@@ -1397,7 +1412,7 @@ async function submitOrder(){
   /* ---------- SIN CONEXIÓN: encola y sigue trabajando ---------- */
   if(offline || !hayConexion()){
     encolar(payload);
-    pedidoHoy = payload;   // referencia para los marcadores ✔/●
+    pedidoHoy = payload;
     cods.forEach(c=>{
       if(!comprasSet.has(c)){ comprasSet.add(c); compras.push(c); extraSet.add(c); }
     });
@@ -1411,7 +1426,7 @@ async function submitOrder(){
   try{
     const sBloq = await db.ref('PEDIDOS/Bloqueo').once('value');
     if(estaBloqueado(sBloq.val())){
-      activarBloqueo();
+      activarBloqueo(sBloq.val());
       return;
     }
     await Promise.all([
@@ -1442,7 +1457,6 @@ async function anularPedido(){
 
 async function anularPedidoInterno(){
   const jornada = pedidoHoy ? (pedidoHoy.jornada || calcularJornada()) : calcularJornada();
-  /* Sin conexión: el pedido está en la cola local → se quita de ahí */
   if(offline || !hayConexion()){
     escribirLS('pend_' + CLIENTE, pendientes().filter(p=>p.jornada !== jornada));
     pedidoHoy = null;
@@ -1485,7 +1499,6 @@ window.addEventListener('beforeunload', e=>{
 });
 
 async function precargarNombre(){
-  /* Sin conexión: usa el caché local */
   if(offline || !hayConexion()){
     const cache = leerLS('cache_cli_' + CLIENTE);
     if(cache && cache.nombre){ NOMBRE_CLIENTE = cache.nombre; startApp(); return; }
