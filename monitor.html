@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Monitor de Pedidos — Grupo ORO</title>
-<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#C8102E">
-<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -18,7 +16,7 @@
   --green-soft:#eef4f1; --green-border:#bcd9cd; --tipo-bg:#f4f7f5;
   --orange:#f39c12; --orange-text:#b9770e; --orange-soft:#fff3dd;
   --red:#c0392b; --red-text:#e74c3c; --red-soft:#fdecea;
-  --blue-txt:#1a4f8a; --blue-soft:#e8f0fe; --ok-txt:#0a5c42; --ok-soft:#e8f5f0;
+  --ok-txt:#0a5c42; --ok-soft:#e8f5f0;
   --toast-bg:#22313f; --toast-txt:#fff;
 }
 body.dark{
@@ -28,7 +26,7 @@ body.dark{
   --green-soft:rgba(18,162,115,.16); --green-border:#1f5c46; --tipo-bg:#1d2b27;
   --orange:#f39c12; --orange-text:#f2b34c; --orange-soft:rgba(243,156,18,.16);
   --red:#e06055; --red-text:#e98074; --red-soft:rgba(192,57,43,.20);
-  --blue-txt:#7fb3f0; --blue-soft:rgba(58,110,190,.25); --ok-txt:#2ec894; --ok-soft:rgba(18,162,115,.18);
+  --ok-txt:#2ec894; --ok-soft:rgba(18,162,115,.18);
   --toast-bg:#e8eef4; --toast-txt:#12181f;
 }
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',system-ui,sans-serif}
@@ -51,9 +49,15 @@ header button{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;font-
 @keyframes lv{0%,100%{opacity:1}50%{opacity:.3}}
 
 .container{max-width:1150px;margin:0 auto;padding:16px}
-.lock-badge{display:inline-block;font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:9px;margin-bottom:14px}
+
+/* ===== BARRA DE BLOQUEO ===== */
+.lock-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.lock-badge{display:inline-block;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;flex:1;min-width:220px}
 .lock-badge.on{background:var(--red-soft);color:var(--red)}
 .lock-badge.off{background:var(--ok-soft);color:var(--ok-txt)}
+.lock-actions{display:flex;gap:8px}
+#btn-lock{background:var(--red);color:#fff;padding:11px 18px;font-size:13.5px;font-weight:700;border-radius:10px}
+#btn-unlock{background:var(--green);color:#fff;padding:11px 18px;font-size:13.5px;font-weight:700;border-radius:10px}
 
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
@@ -95,6 +99,19 @@ tr.rowp:hover{background:var(--panel-soft)}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
 
+/* ===== MODAL DE BLOQUEO ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.modal h3{margin-bottom:8px;font-size:17px}
+.modal .sub{font-size:13px;color:var(--text-soft);margin-bottom:14px;line-height:1.4}
+.opt{display:flex;align-items:center;gap:10px;background:var(--panel-soft);border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px;cursor:pointer;font-size:14px;font-weight:600}
+.opt:hover{border-color:var(--red)}
+.opt input{accent-color:var(--red);width:17px;height:17px}
+.opt input[type=time]{margin-left:auto;padding:6px 8px;border:2px solid var(--border-input);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:15px;font-weight:700}
+.mbtns{display:flex;gap:8px;margin-top:14px}
+.mbtn-cancel{flex:1;padding:12px;background:var(--panel-soft);border:1px solid var(--border);color:var(--text-soft);font-size:14px;font-weight:700;border-radius:10px}
+.mbtn-ok{flex:1;padding:12px;background:var(--red);color:#fff;font-size:14px;font-weight:700;border-radius:10px}
+
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-txt);padding:12px 22px;border-radius:30px;font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
 #toast.show{opacity:1}
 </style>
@@ -125,7 +142,15 @@ tr.rowp:hover{background:var(--panel-soft)}
 </header>
 
 <div class="container">
-  <div id="lock" class="lock-badge off">🔓 Ingreso de pedidos habilitado</div>
+
+  <!-- BARRA DE BLOQUEO CON TEMPORIZADOR -->
+  <div class="lock-bar">
+    <div id="lock" class="lock-badge off">🔓 Ingreso habilitado</div>
+    <div class="lock-actions">
+      <button id="btn-lock" onclick="abrirModalBloqueo()">🔒 Bloquear ingreso</button>
+      <button id="btn-unlock" class="hidden" onclick="desbloquearAhora()">🔓 Desbloquear ahora</button>
+    </div>
+  </div>
 
   <div class="cards">
     <div class="card"><div class="k">Clientes con pedido</div><div class="v" id="c-cli">0</div><div class="s" id="c-sin">—</div></div>
@@ -140,11 +165,29 @@ tr.rowp:hover{background:var(--panel-soft)}
     <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
     <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
     <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
-    <button class="csv-btn" id="csv-actual" onclick="exportCSV()">📄 Exportar CSV</button>
+    <button class="csv-btn" onclick="exportCSV()">📄 Exportar CSV</button>
   </div>
 
   <div id="sec-cons"></div>
   <div id="sec-cli" class="hidden"></div>
+</div>
+
+<!-- MODAL DE BLOQUEO CON TEMPORIZADOR -->
+<div id="bloq-modal" class="modal-bg hidden" onclick="if(event.target===this)cerrarModalBloqueo()">
+  <div class="modal">
+    <h3>🔒 Bloquear ingreso de pedidos</h3>
+    <p class="sub">Los clientes no podrán cargar ni confirmar pedidos.<br>
+       Elija cuándo se desbloquea automáticamente:</p>
+    <label class="opt"><input type="radio" name="bloqopt" value="midnight" checked> Hasta medianoche (00:00)</label>
+    <label class="opt"><input type="radio" name="bloqopt" value="0030"> Hasta las 00:30</label>
+    <label class="opt"><input type="radio" name="bloqopt" value="0100"> Hasta las 01:00</label>
+    <label class="opt"><input type="radio" name="bloqopt" value="1h"> Durante 1 hora</label>
+    <label class="opt"><input type="radio" name="bloqopt" value="custom"> Hora personalizada <input type="time" id="bloq-time" value="00:30"></label>
+    <div class="mbtns">
+      <button class="mbtn-cancel" onclick="cerrarModalBloqueo()">Cancelar</button>
+      <button class="mbtn-ok" onclick="ejecutarBloqueo()">🔒 CONFIRMAR</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -166,24 +209,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* Igual que la app (para calcular la jornada por defecto) */
 const HORA_CORTE = null;
 const SALTAR_FINDES = true;
 
-/* PIN opcional de acceso al panel (evita curiosos; NO es seguridad real) */
-const ADMIN_PIN = "";   // Ej: "1234". Vacío = sin pin
+/* PIN de acceso al monitor y a las acciones de bloqueo.
+   "" = sin pin. Recomendado ponerlo: ej "1234" */
+const ADMIN_PIN = "";
 
 /* ============================================================
    2) ESTADO
 ============================================================ */
 let tab = 'cons';
 let selFecha = '';
-let data = {};          // cliente → pedido
-let prevTs = {};        // cliente → ts (para detectar cambios)
+let data = {};
+let prevTs = {};
 let primeraCarga = true;
-let artInfo = {};       // catálogo (LINEA/TIPO por artículo)
-let clientesReg = {};   // clientes registrados
+let artInfo = {};
+let clientesReg = {};
 let refPed = null, refBloq = null;
+let bloqVal = null;          // último valor de PEDIDOS/Bloqueo
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -206,7 +250,7 @@ document.getElementById('tg-ico').textContent =
   document.body.classList.contains('dark') ? '☀️' : '🌙';
 
 /* ============================================================
-   3) JORNADA
+   3) FECHAS
 ============================================================ */
 function calcularJornada(){
   const d = new Date();
@@ -227,15 +271,125 @@ function formatearFecha(iso){
   return new Date(y, m-1, d).toLocaleDateString('es-ES',
     {weekday:'long', day:'2-digit', month:'short'});
 }
+/* Timestamp de la próxima hora h:m (si ya pasó hoy → mañana) */
+function tsHora(h, m){
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  if(d.getTime() <= Date.now() + 60000) d.setDate(d.getDate() + 1);
+  return d.getTime();
+}
+function formatDur(ms){
+  if(ms <= 0) return '0s';
+  const s = Math.floor(ms/1000);
+  const h = Math.floor(s/3600);
+  const m = Math.floor((s%3600)/60);
+  const ss = s%60;
+  if(h > 0) return h + 'h ' + m + 'm';
+  if(m > 0) return m + 'm ' + ss + 's';
+  return ss + 's';
+}
 
 /* ============================================================
-   4) INICIO
+   4) PIN
+============================================================ */
+function verificarPin(){
+  if(!ADMIN_PIN) return true;
+  if(sessionStorage.getItem('mon_ok') === '1') return true;
+  const p = prompt('PIN de administrador:');
+  if(p !== null && p === ADMIN_PIN){
+    sessionStorage.setItem('mon_ok','1');
+    return true;
+  }
+  toast('PIN incorrecto');
+  return false;
+}
+
+/* ============================================================
+   5) BLOQUEO: estado en vivo + acciones
+============================================================ */
+/* Mismo criterio que la app del cliente:
+   - con hastaTs → vigente exactamente hasta esa hora (temporizadores)
+   - sin hastaTs → bloqueo por fecha de la macro, hasta medianoche   */
+function pintarBloqueo(){
+  const el = document.getElementById('lock');
+  const bL = document.getElementById('btn-lock');
+  const bU = document.getElementById('btn-unlock');
+  const d = bloqVal && bloqVal.descarga;
+  let activo = false, txt = '🔓 Ingreso de pedidos habilitado';
+
+  if(d){
+    if(typeof d.hastaTs === 'number'){
+      if(Date.now() < d.hastaTs){
+        activo = true;
+        txt = '🔒 Bloqueado — se desbloquea en ' + formatDur(d.hastaTs - Date.now()) +
+               ' (a las ' + new Date(d.hastaTs).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) + ')';
+      }
+    } else if(d.fecha && d.fecha === fechaLocalISO()){
+      activo = true;
+      txt = '🔒 Bloqueado por descarga de hoy — hasta medianoche';
+    }
+  }
+  el.className = 'lock-badge ' + (activo ? 'on' : 'off');
+  el.textContent = txt;
+  bL.classList.toggle('hidden', activo);
+  bU.classList.toggle('hidden', !activo);
+}
+
+function abrirModalBloqueo(){
+  if(!verificarPin()) return;
+  document.getElementById('bloq-modal').classList.remove('hidden');
+}
+function cerrarModalBloqueo(){
+  document.getElementById('bloq-modal').classList.add('hidden');
+}
+
+async function ejecutarBloqueo(){
+  if(!verificarPin()) return;
+  const opt = document.querySelector('input[name=bloqopt]:checked').value;
+  let hastaTs;
+  if(opt === 'midnight')       hastaTs = tsHora(0, 0);
+  else if(opt === '0030')      hastaTs = tsHora(0, 30);
+  else if(opt === '0100')      hastaTs = tsHora(1, 0);
+  else if(opt === '1h')        hastaTs = Date.now() + 3600000;
+  else {
+    const t = document.getElementById('bloq-time').value || '00:30';
+    const [h, m] = t.split(':').map(Number);
+    hastaTs = tsHora(h || 0, m || 0);
+  }
+  try{
+    await db.ref('PEDIDOS/Bloqueo').set({
+      descarga: {
+        fecha: fechaLocalISO(),   // compatibilidad con la macro
+        ts: Date.now(),
+        hastaTs: hastaTs
+      }
+    });
+    cerrarModalBloqueo();
+    pintarBloqueo();
+    toast('🔒 Ingreso bloqueado hasta ' +
+          new Date(hastaTs).toLocaleString('es-ES'));
+  }catch(e){
+    toast('Error al bloquear: ' + e.message);
+  }
+}
+
+async function desbloquearAhora(){
+  if(!verificarPin()) return;
+  if(!confirm('¿Desbloquear el ingreso de pedidos ahora mismo?')) return;
+  try{
+    await db.ref('PEDIDOS/Bloqueo').remove();
+    toast('🔓 Ingreso habilitado');
+  }catch(e){
+    toast('Error: ' + e.message);
+  }
+}
+
+/* ============================================================
+   6) INICIO
 ============================================================ */
 async function init(){
   if(ADMIN_PIN && sessionStorage.getItem('mon_ok') !== '1'){
-    const p = prompt('PIN de acceso al monitor:');
-    if(p === null || p !== ADMIN_PIN){ document.body.innerHTML = '<p style="padding:40px;text-align:center">Acceso denegado.</p>'; return; }
-    sessionStorage.setItem('mon_ok','1');
+    if(!verificarPin()){ document.body.innerHTML = '<p style="padding:40px;text-align:center">Acceso denegado.</p>'; return; }
   }
 
   selFecha = calcularJornada();
@@ -252,20 +406,15 @@ async function init(){
   await armarFechas();
   escuchar(selFecha);
 
-  /* Estado del bloqueo, en vivo */
+  /* Estado del bloqueo, en vivo + contador cada segundo */
   refBloq = db.ref('PEDIDOS/Bloqueo');
   refBloq.on('value', s=>{
-    const b = s.val();
-    const activo = !!(b && b.descarga && b.descarga.fecha === fechaLocalISO());
-    const el = document.getElementById('lock');
-    el.className = 'lock-badge ' + (activo ? 'on' : 'off');
-    el.textContent = activo
-      ? '🔒 Ingreso BLOQUEADO (pedidos descargados hoy — se reabre a las 00:00)'
-      : '🔓 Ingreso de pedidos habilitado';
-  });
+    bloqVal = s.val();
+    pintarBloqueo();
+  }, err=>{ toast('Error de conexión: ' + err.message); });
+  setInterval(pintarBloqueo, 1000);
 }
 
-/* Lista de jornadas disponibles (vía REST shallow, sin bajar todo) */
 async function armarFechas(){
   const sel = document.getElementById('fecha-sel');
   let fechas = [];
@@ -289,7 +438,6 @@ function cambiarFecha(){
   escuchar(selFecha);
 }
 
-/* Listener en vivo de la jornada seleccionada */
 function escuchar(fecha){
   if(refPed) refPed.off();
   data = {};
@@ -304,7 +452,6 @@ function escuchar(fecha){
   });
 }
 
-/* Detecta qué cliente confirmó/modificó para avisar */
 function detectarCambios(){
   if(!primeraCarga){
     Object.keys(data).forEach(c=>{
@@ -322,7 +469,7 @@ function detectarCambios(){
 }
 
 /* ============================================================
-   5) CÁLCULOS
+   7) CÁLCULOS Y RENDER
 ============================================================ */
 function consolidar(){
   const map = {};
@@ -350,9 +497,6 @@ function consolidar(){
 
 function qn(){ return norm(document.getElementById('search').value.trim()); }
 
-/* ============================================================
-   6) RENDER
-============================================================ */
 function setTab(t){
   tab = t;
   document.getElementById('tab-cons').classList.toggle('act', t==='cons');
@@ -363,7 +507,6 @@ function setTab(t){
 }
 
 function render(){
-  /* --- tarjetas --- */
   const cons = consolidar();
   const clis = Object.keys(data);
   document.getElementById('c-cli').textContent = clis.length;
@@ -375,7 +518,6 @@ function render(){
   document.getElementById('c-ult').textContent = ultTs
     ? new Date(ultTs).toLocaleTimeString('es-ES') + ' · ' + ultCli : '—';
 
-  /* clientes registrados sin pedido */
   const sinPedido = Object.keys(clientesReg).filter(c=> !data[c]);
   const sp = document.getElementById('sin-pedido');
   if(sinPedido.length && clis.length){
@@ -474,7 +616,7 @@ function renderClientes(){
 }
 
 /* ============================================================
-   7) EXPORTAR CSV (según la pestaña activa)
+   8) EXPORTAR CSV
 ============================================================ */
 function exportCSV(){
   const q = qn();
