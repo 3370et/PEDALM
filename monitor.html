@@ -94,6 +94,8 @@ tr.rowp:hover{background:var(--panel-soft)}
 .lin-head td{background:var(--tipo-bg);padding:10px 12px;cursor:pointer;user-select:none}
 .lin-head:hover td{filter:brightness(.97)}
 .lin-head .hint{color:var(--text-mute);font-weight:400;font-size:11.5px}
+.lin-copy2{background:var(--panel);border:1px solid var(--green-border);color:var(--green-text);font-size:11px;font-weight:700;padding:4px 10px;border-radius:7px;margin-left:10px;vertical-align:middle}
+.lin-copy2:hover{filter:brightness(.95)}
 
 .clientes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 .ccard{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px}
@@ -195,6 +197,7 @@ tr.rowp:hover{background:var(--panel-soft)}
     <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
     <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
     <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
+    <button class="csv-btn" onclick="copiarConsolidado()" title="Copiar artículos y totales del consolidado, sin detalle de clientes">📋 Copiar consolidado</button>
     <button class="csv-btn" onclick="exportCSV()">📄 Exportar CSV</button>
   </div>
 
@@ -569,33 +572,42 @@ function copiarLista(tipo){
   if(tipo === 'con'){
     const con = cliConPedido();
     txt = 'Clientes CON pedido (' + con.length + ') — ' + selFecha + ':\n' +
-      con.map(c=> (data[c].nombreCliente||c) + ' (' + c + ')').join(', ');
+      con.map(c=> '• ' + (data[c].nombreCliente||c) + ' (' + c + ')').join('\n');
   } else {
     const sin = cliSinPedido();
     txt = 'Clientes SIN pedido (' + sin.length + ') — ' + selFecha + ':\n' +
-      sin.map(c=> (clientesReg[c].CLIENTE||c) + ' (' + c + ')').join(', ');
+      sin.map(c=> '• ' + (clientesReg[c].CLIENTE||c) + ' (' + c + ')').join('\n');
   }
   copiarTexto(txt, tipo === 'con' ? 'con pedido' : 'sin pedido');
 }
 
-/* Copia el detalle de UNA LÍNEA de producto completa */
-function copiarLinea(lin){
+/* Copia UNA LÍNEA de producto:
+   sin modo (clic en la cabecera) → detalle completo con desglose por cliente
+   modo 'totales' (botón 📋 solo totales) → artículos y totales, SIN clientes */
+function copiarLinea(lin, modo){
   const cons = consolidar().filter(m=> (m.linea || '(SIN LÍNEA)') === lin);
   if(!cons.length) return;
+  cons.sort((x,y)=> y.total - x.total);
 
   let txt = lin.toUpperCase() + ' — pedidos del ' + selFecha + '\n';
-  cons
-    .sort((x,y)=> y.total - x.total)
-    .forEach(m=>{
+
+  if(modo === 'totales'){
+    cons.forEach(m=>{
+      txt += '• ' + m.art + ' (' + m.cod + ') — TOTAL: ' + m.total + '\n';
+    });
+  } else {
+    cons.forEach(m=>{
       txt += '\n' + m.art + ' (' + m.cod + ') — TOTAL: ' + m.total + '\n';
       m.clientes.forEach(c=>{
         txt += '   • ' + c.cant + ' — ' + c.nombre + ' (' + c.cli + ')\n';
       });
     });
+  }
   const und = cons.reduce((s,m)=>s+m.total,0);
   txt += '\nTotal línea: ' + cons.length + ' artículos · ' + und + ' unidades';
 
-  const done = ()=> toast('📋 Línea "' + lin + '" copiada (' + cons.length + ' artículos)');
+  const done = ()=> toast('📋 Línea "' + lin + '" copiada (' + cons.length + ' artículos' +
+                          (modo === 'totales' ? ', sin clientes)' : ')'));
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
   } else {
@@ -740,10 +752,11 @@ function renderConsolidado(cons){
       if(lin !== linAnterior){
         /* Escapa la línea para usarla dentro del onclick */
         const linArg = lin.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        html += `<tr class="lin-head" onclick="copiarLinea('${linArg}')" title="Clic para copiar el detalle de esta línea">
+        html += `<tr class="lin-head" onclick="copiarLinea('${linArg}')" title="Clic para copiar el detalle de esta línea (con clientes)">
           <td colspan="5" style="padding:10px 12px">
             <b>${esc(lin.toUpperCase())}</b>
             <span class="hint"> 📋 copiar detalle</span>
+            <button class="lin-copy2" onclick="event.stopPropagation();copiarLinea('${linArg}','totales')" title="Copiar solo artículos y totales, sin detalle de clientes">📋 solo totales</button>
           </td></tr>`;
         linAnterior = lin;
       }
@@ -756,7 +769,7 @@ function renderConsolidado(cons){
   html += '</table>' +
     '<p style="font-size:11.5px;color:var(--text-mute);margin-top:8px">' +
     (ordenCons === 'linea'
-      ? '💡 Clic en la cabecera de LÍNEA para copiar su detalle · clic en un artículo para ver clientes'
+      ? '💡 Clic en la cabecera de LÍNEA copia el detalle con clientes · "📋 solo totales" copia la línea sin clientes · "📋 Copiar consolidado" copia todos los totales'
       : '💡 Ordenado por total — clic en LÍNEA para volver a agrupar por línea de producto') +
     '</p>';
 
@@ -829,6 +842,48 @@ function renderClientes(){
       </table>
     </div>`;
   }).join('') + '</div>';
+}
+
+/* Copia el CONSOLIDADO completo: solo artículos y totales, sin detalle de clientes.
+   Respeta el filtro de búsqueda y el orden activo (por línea o por total). */
+function copiarConsolidado(){
+  const q = qn();
+  const cons = consolidar().filter(m=> !q ||
+    norm(m.art + ' ' + m.cod + ' ' + m.linea).includes(q));
+  if(!cons.length){ toast('Nada que copiar'); return; }
+
+  let txt = '📋 Consolidado de pedidos — ' + selFecha + '\n';
+  let und = 0;
+
+  if(ordenCons === 'linea'){
+    cons.sort((x,y)=>{
+      const c = String(x.linea || 'ZZZ').localeCompare(String(y.linea || 'ZZZ'));
+      if(c !== 0) return c;
+      return (y.total - x.total) || String(x.art).localeCompare(String(y.art));
+    });
+    let linAnt = null;
+    cons.forEach(m=>{
+      const lin = m.linea || '(SIN LÍNEA)';
+      if(lin !== linAnt){ txt += '\n— ' + lin.toUpperCase() + ' —\n'; linAnt = lin; }
+      txt += '• ' + m.art + ' (' + m.cod + ') — ' + m.total + '\n';
+      und += m.total;
+    });
+  } else {
+    cons.sort((x,y)=> (y.total - x.total) || String(x.art).localeCompare(String(y.art)));
+    cons.forEach(m=>{
+      txt += '• ' + m.art + ' (' + m.cod + ') — ' + m.total + '\n';
+      und += m.total;
+    });
+  }
+
+  txt += '\nTotal: ' + cons.length + ' artículos · ' + und + ' unidades';
+
+  const done = ()=> toast('📋 Consolidado copiado (' + cons.length + ' artículos, sin clientes)');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
+  } else {
+    fallbackCopiar(txt, done);
+  }
 }
 
 /* ============================================================
