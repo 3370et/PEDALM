@@ -136,9 +136,11 @@ input::placeholder{color:var(--text-mute)}
 .login-logo{display:block;max-width:170px;margin:0 auto 12px;border-radius:10px}
 .login-box h1{font-size:24px;color:var(--green-text);margin-bottom:6px}
 .login-box p{color:var(--text-soft);font-size:14px;margin-bottom:20px}
-.login-box input{width:100%;padding:12px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:18px;text-transform:uppercase;text-align:center;margin-bottom:14px}
+.login-box input{width:100%;padding:12px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:18px;text-transform:uppercase;text-align:center;margin-bottom:10px}
 .login-box input:focus{outline:none;border-color:var(--green)}
 .login-box button.ingresar{width:100%;padding:13px;background:var(--green);color:#fff;font-size:16px;font-weight:600}
+.login-remember{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-soft);margin:0 0 14px;cursor:pointer;justify-content:center}
+.login-remember input{width:auto;text-transform:none;text-align:left}
 #login-error{color:var(--red-text);font-size:13px;margin-top:10px;min-height:16px}
 .tg-mini{background:var(--panel-soft);color:var(--text-soft);border:1px solid var(--border);padding:8px 14px;font-size:12.5px;font-weight:600;margin-top:14px}
 
@@ -281,8 +283,13 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
   <div class="login-box">
     <img src="logo.png" alt="Grupo ORO" class="login-logo" onerror="this.style.display='none'">
     <h1>Pedidos</h1>
-    <p>Ingrese su código</p>
-    <input id="client-input" placeholder="" autocomplete="off" maxlength="20">
+    <p>Ingrese su código y clave</p>
+    <input id="client-input" placeholder="Código" autocomplete="off" maxlength="20">
+    <input id="pass-input" type="password" placeholder="Clave" autocomplete="off" maxlength="20">
+    <label class="login-remember">
+      <input type="checkbox" id="remember-pass">
+      Recordar clave en este dispositivo
+    </label>
     <button class="ingresar" onclick="login()">INGRESAR</button>
     <p id="login-error"></p>
     <button class="tg-mini" onclick="toggleTema()"><span class="tg-icon">🌙</span> <span class="tg-text">Modo oscuro</span></button>
@@ -389,24 +396,24 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-const HORA_CORTE = null;       // Ej: 15 = después de las 15:00 entra a la jornada siguiente
-const SALTAR_FINDES = true;    // sáb/dom se corren al lunes
-const CLIENTE_FIJO = "";       // Ej: "ALM01" para página fija por cliente
+const HORA_CORTE = null;
+const SALTAR_FINDES = true;
+const CLIENTE_FIJO = "";
 
 /* ============================================================
    2) ESTADO
 ============================================================ */
 let CLIENTE = null, NOMBRE_CLIENTE = '';
 let articulos = {}, carrito = {};
-let ventasSet = new Set();     // sugeridos de la tabla Ventas (ERP)
-let extraSet  = new Set();     // sugeridos agregados por el cliente (PEDIDOS/Frecuentes)
-let excluidosSet = new Set();  // sugeridos del ERP ocultos (PEDIDOS/Excluidos)
+let ventasSet = new Set();
+let extraSet  = new Set();
+let excluidosSet = new Set();
 let compras = [], comprasSet = new Set();
 let arbol = {}, lineasOrden = [];
-let abiertasManual = new Set();   // líneas que el usuario abrió con clic
-let pedidoHoy = null;             // pedido guardado en la jornada actual
+let abiertasManual = new Set();
+let pedidoHoy = null;
 let verTodos = false;
-let desbloqTimer = null;          // reingreso automático cuando expira el temporizador
+let desbloqTimer = null;
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const sanKey = s => String(s).replace(/[.#$\[\]\/]/g, '-');
@@ -442,12 +449,13 @@ function escribirLS(k, v){
   try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){}
 }
 
-function guardarCacheCliente(ventasList, extraList, exclList){
+function guardarCacheCliente(ventasList, extraList, exclList, sinClave){
   escribirLS('cache_cli_' + CLIENTE, {
     nombre: NOMBRE_CLIENTE,
     ventas: ventasList,
     frecuentes: extraList,
     excluidos: exclList,
+    sinClave: sinClave === true,
     cuando: new Date().toLocaleString('es-ES')
   });
 }
@@ -506,13 +514,13 @@ window.addEventListener('online', ()=>{ offline = false; actualizarBanner(); flu
 window.addEventListener('offline', ()=>{ offline = true; actualizarBanner(); });
 
 /* ============================================================
-   3) JORNADA + BLOQUEO (compatible con temporizador del monitor)
+   3) JORNADA + BLOQUEO
 ============================================================ */
 function calcularJornada(){
   const d = new Date();
   if(HORA_CORTE !== null && d.getHours() >= HORA_CORTE) d.setDate(d.getDate() + 1);
   if(SALTAR_FINDES){
-    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1); // 0=dom, 6=sáb
+    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
   }
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
@@ -528,9 +536,6 @@ function fechaLocalISO(){
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
 
-/* Bloqueo:
-   - Con hastaTs (temporizadores del monitor): vigente hasta esa hora exacta
-   - Sin hastaTs (bloqueo por fecha de la macro): hasta medianoche */
 function estaBloqueado(bloq){
   if(!bloq || !bloq.descarga) return false;
   const d = bloq.descarga;
@@ -560,14 +565,12 @@ function renderBloqueo(){
 function activarBloqueo(bloq){
   document.getElementById('app-screen').classList.add('hidden');
   renderBloqueo();
-
   const p = document.getElementById('block-msg');
   const d = bloq && bloq.descarga;
   if(d && typeof d.hastaTs === 'number' && Date.now() < d.hastaTs){
     p.innerHTML = 'Los pedidos están cerrados temporalmente.<br>' +
       'El ingreso se reabre a las ' +
       new Date(d.hastaTs).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) + '.';
-    /* Reingreso automático: cuando expira el temporizador, vuelve a entrar solo */
     if(desbloqTimer === null){
       const falta = d.hastaTs - Date.now();
       desbloqTimer = setTimeout(async ()=>{
@@ -588,24 +591,38 @@ function activarBloqueo(bloq){
 }
 
 /* ============================================================
-   4) LOGIN / LOGOUT
+   4) LOGIN / LOGOUT — con CLAVE (campo CLAVE en Firebase)
+   Si CLAVE está vacía o " " → el cliente entra sin clave
+   (transición gradual mientras la macro les asigna una).
 ============================================================ */
 async function login(){
   const cod = sanKey(document.getElementById('client-input').value.trim().toUpperCase());
+  const pass = document.getElementById('pass-input').value.trim();
+  const remember = document.getElementById('remember-pass').checked;
   const err = document.getElementById('login-error');
+
   if(!cod){ err.textContent = 'Ingrese su código de cliente'; return; }
 
-  /* ---------- SIN CONEXIÓN: valida contra el caché local ---------- */
+  /* ---------- SIN CONEXIÓN: valida contra caché local ---------- */
   if(offline || !hayConexion()){
     const cache = leerLS('cache_cli_' + cod);
-    if(cache && cache.nombre){
-      CLIENTE = cod;
-      NOMBRE_CLIENTE = cache.nombre;
-      localStorage.setItem('pedidos_cliente', CLIENTE);
-      startApp();
-    } else {
+    const savedPass = localStorage.getItem('pass_' + cod);
+    if(!cache || !cache.nombre){
       err.textContent = 'Sin conexión y este dispositivo no tiene datos de ese cliente. Conéctese al menos una vez.';
+      return;
     }
+    const cacheSinClave = cache.sinClave === true;
+    if(!cacheSinClave){
+      if(!pass){ err.textContent = 'Sin conexión: ingrese su clave.'; return; }
+      if(savedPass !== pass){
+        err.textContent = 'Sin conexión y la clave guardada no coincide. Reconéctese para validar.';
+        return;
+      }
+    }
+    CLIENTE = cod;
+    NOMBRE_CLIENTE = cache.nombre;
+    localStorage.setItem('pedidos_cliente', CLIENTE);
+    startApp();
     return;
   }
 
@@ -614,14 +631,36 @@ async function login(){
     const snap = await db.ref('PEDIDOS/Clientes/' + cod).once('value');
     const cli = snap.val();
     if(!cli){ err.textContent = 'Código no registrado. Contáctese con nosotros.'; return; }
+
+    const claveFirebase = (cli.CLAVE || '').trim();
+    const sinClave = claveFirebase === '';
+
+    if(!sinClave){
+      if(!pass){ err.textContent = 'Ingrese su clave.'; return; }
+      if(claveFirebase !== pass){
+        err.textContent = 'Clave incorrecta.';
+        if(localStorage.getItem('pass_' + cod) === pass){
+          localStorage.removeItem('pass_' + cod);
+          document.getElementById('remember-pass').checked = false;
+        }
+        return;
+      }
+    }
+
     CLIENTE = cod;
     NOMBRE_CLIENTE = cli.CLIENTE || cod;
     localStorage.setItem('pedidos_cliente', CLIENTE);
+    if(!sinClave && remember){
+      localStorage.setItem('pass_' + cod, pass);
+    } else {
+      localStorage.removeItem('pass_' + cod);
+    }
     startApp();
   }catch(e){
     err.textContent = 'Error de conexión: ' + e.message;
   }
 }
+
 function logout(){
   CLIENTE = null; NOMBRE_CLIENTE = '';
   if(desbloqTimer){ clearTimeout(desbloqTimer); desbloqTimer = null; }
@@ -630,6 +669,8 @@ function logout(){
   document.getElementById('block-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('client-input').value = '';
+  document.getElementById('pass-input').value = '';
+  document.getElementById('remember-pass').checked = false;
   document.getElementById('login-error').textContent = '';
   actualizarBanner();
 }
@@ -686,16 +727,20 @@ async function startApp(){
 
   /* ================== MODO ONLINE (actualiza el caché) ================== */
   try{
-    const [sArt, sVent, sFrec, sExcl, sHoy, sBloq] = await Promise.all([
+    const [sArt, sVent, sFrec, sExcl, sHoy, sBloq, sCli] = await Promise.all([
       db.ref('PEDIDOS/Articulos').once('value'),
       db.ref('PEDIDOS/Ventas').once('value'),
       db.ref('PEDIDOS/Frecuentes/' + CLIENTE).once('value'),
       db.ref('PEDIDOS/Excluidos/' + CLIENTE).once('value'),
       db.ref('PEDIDOS/Pedidos/' + calcularJornada() + '/' + CLIENTE).once('value'),
-      db.ref('PEDIDOS/Bloqueo').once('value')
+      db.ref('PEDIDOS/Bloqueo').once('value'),
+      db.ref('PEDIDOS/Clientes/' + CLIENTE).once('value')
     ]);
     articulos = sArt.val() || {};
     escribirLS('cache_art', articulos);
+
+    const cliData = sCli.val() || {};
+    const sinClave = ((cliData.CLAVE || '').trim() === '');
 
     const ventasList = extraerCompras(sVent.val(), CLIENTE);
     const extraList  = Object.keys(sFrec.val() || {});
@@ -705,7 +750,7 @@ async function startApp(){
     excluidosSet = new Set(exclList);
     compras   = [...new Set([...ventasList, ...extraList])].filter(c=>!excluidosSet.has(c));
     comprasSet = new Set(compras);
-    guardarCacheCliente(ventasList, extraList, exclList);
+    guardarCacheCliente(ventasList, extraList, exclList, sinClave);
 
     pedidoHoy = sHoy.val();
     if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
@@ -903,7 +948,6 @@ function construirArbol(){
 
 /* ============================================================
    8) ESTADO DE GUARDADO
-   ○ vacio | ● nuevo | ● cambio | ● eliminado | ✔ ok
 ============================================================ */
 function estadoGuardado(cod){
   const guardado = (pedidoHoy && pedidoHoy.items && pedidoHoy.items[cod])
@@ -1209,7 +1253,7 @@ function exportarCSV(){
 }
 
 /* ============================================================
-   11) CATÁLOGO (acordeón — clic por delegación de eventos)
+   11) CATÁLOGO (acordeón)
 ============================================================ */
 function renderCatalogo(){
   const box = document.getElementById('lineas-box');
@@ -1377,7 +1421,7 @@ function aplicarBusqueda(){
 }
 
 /* ============================================================
-   13) CONFIRMAR / ANULAR (sesión única + modo offline)
+   13) CONFIRMAR / ANULAR
 ============================================================ */
 function saveCart(){ localStorage.setItem('carrito_'+CLIENTE, JSON.stringify(carrito)); }
 
@@ -1409,7 +1453,6 @@ async function submitOrder(){
     items: items
   };
 
-  /* ---------- SIN CONEXIÓN: encola y sigue trabajando ---------- */
   if(offline || !hayConexion()){
     encolar(payload);
     pedidoHoy = payload;
@@ -1486,7 +1529,12 @@ window.addEventListener('load', ()=>{
   if(CLIENTE_FIJO){ CLIENTE = sanKey(CLIENTE_FIJO); precargarNombre(); return; }
   const guardado = localStorage.getItem('pedidos_cliente');
   if(guardado){ CLIENTE = guardado; precargarNombre(); }
-  document.getElementById('client-input').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
+  document.getElementById('client-input').addEventListener('keydown', e=>{
+    if(e.key==='Enter') document.getElementById('pass-input').focus();
+  });
+  document.getElementById('pass-input').addEventListener('keydown', e=>{
+    if(e.key==='Enter') login();
+  });
 });
 
 window.addEventListener('beforeunload', e=>{
@@ -1499,10 +1547,22 @@ window.addEventListener('beforeunload', e=>{
 });
 
 async function precargarNombre(){
+  const savedPass = localStorage.getItem('pass_' + CLIENTE);
+  if(!savedPass){
+    const input = document.getElementById('client-input');
+    if(input) input.value = CLIENTE;
+    const passInput = document.getElementById('pass-input');
+    if(passInput) passInput.focus();
+    return;
+  }
+
   if(offline || !hayConexion()){
     const cache = leerLS('cache_cli_' + CLIENTE);
-    if(cache && cache.nombre){ NOMBRE_CLIENTE = cache.nombre; startApp(); return; }
-    logout();
+    if(cache && cache.nombre){
+      NOMBRE_CLIENTE = cache.nombre;
+      document.getElementById('pass-input').value = savedPass;
+      login();
+    }
     return;
   }
   try{
@@ -1510,41 +1570,31 @@ async function precargarNombre(){
     const cli = snap.val();
     if(!cli){ logout(); return; }
     NOMBRE_CLIENTE = cli.CLIENTE || CLIENTE;
-    startApp();
+    document.getElementById('pass-input').value = savedPass;
+    login();
   }catch(e){
     logout();
   }
 }
 
 /* ============================================================
-   15) PWA: registrar el service worker
-       (solo cuando está alojado con HTTPS — GitHub Pages)
+   15) PWA: service worker + aviso de nueva versión
 ============================================================ */
 if('serviceWorker' in navigator && location.protocol === 'https:'){
-  window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
-}
-</script>
-<!-- ↓↓↓ AGREGÁ ESTE BLOQUE NUEVO ANTES DE </body> ↓↓↓ -->
-<script>
-(function () {
-  if (!('serviceWorker' in navigator)) return;
-
   let waitingWorker = null;
-  let toastEl = null;
+  let updToast = null;
 
-  function mostrarToastUpdate() {
-    if (toastEl) return; // ya visible
-    toastEl = document.createElement('div');
-    toastEl.id = 'sw-update-toast';
-    toastEl.style.cssText = [
-      'position:fixed', 'bottom:20px', 'right:20px', 'z-index:300',
-      'background:#0e7c5a', 'color:#fff', 'padding:14px 18px',
-      'border-radius:12px', 'box-shadow:0 8px 24px rgba(0,0,0,.25)',
-      'font-family:Segoe UI,system-ui,sans-serif', 'font-size:13.5px',
-      'max-width:320px', 'display:flex', 'flex-direction:column', 'gap:10px'
+  function mostrarToastUpdate(){
+    if(updToast) return;
+    updToast = document.createElement('div');
+    updToast.style.cssText = [
+      'position:fixed','bottom:20px','right:20px','z-index:300',
+      'background:#0e7c5a','color:#fff','padding:14px 18px',
+      'border-radius:12px','box-shadow:0 8px 24px rgba(0,0,0,.25)',
+      'font-family:Segoe UI,system-ui,sans-serif','font-size:13.5px',
+      'max-width:320px','display:flex','flex-direction:column','gap:10px'
     ].join(';');
-
-    toastEl.innerHTML = `
+    updToast.innerHTML = `
       <div style="font-weight:700;font-size:14px">🔄 Nueva versión disponible</div>
       <div style="opacity:.9;line-height:1.4">
         Hay una actualización de la app lista para activarse.
@@ -1562,46 +1612,41 @@ if('serviceWorker' in navigator && location.protocol === 'https:'){
           Actualizar ahora
         </button>
       </div>`;
+    document.body.appendChild(updToast);
 
-    document.body.appendChild(toastEl);
-
-    document.getElementById('sw-upd-now').onclick = function () {
-      if (waitingWorker) {
-        waitingWorker.postMessage('SKIP_WAITING');
-      } else {
-        window.location.reload();
-      }
+    document.getElementById('sw-upd-now').onclick = function(){
+      if(waitingWorker) waitingWorker.postMessage('SKIP_WAITING');
+      else window.location.reload();
     };
-    document.getElementById('sw-upd-later').onclick = function () {
-      if (toastEl) { toastEl.remove(); toastEl = null; }
-      setTimeout(mostrarToastUpdate, 30 * 60 * 1000);
+    document.getElementById('sw-upd-later').onclick = function(){
+      if(updToast){ updToast.remove(); updToast = null; }
+      setTimeout(mostrarToastUpdate, 30*60*1000);
     };
   }
 
-  navigator.serviceWorker.addEventListener('controllerchange', function () {
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
     window.location.reload();
   });
 
-  navigator.serviceWorker.register('sw.js').then(function (reg) {
-    if (reg.waiting) {
-      waitingWorker = reg.waiting;
-      mostrarToastUpdate();
-    }
-    reg.addEventListener('updatefound', function () {
-      const newWorker = reg.installing;
-      if (!newWorker) return;
-      newWorker.addEventListener('statechange', function () {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          waitingWorker = reg.waiting || newWorker;
-          mostrarToastUpdate();
-        }
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      if(reg.waiting){
+        waitingWorker = reg.waiting;
+        mostrarToastUpdate();
+      }
+      reg.addEventListener('updatefound', function(){
+        const newWorker = reg.installing;
+        if(!newWorker) return;
+        newWorker.addEventListener('statechange', function(){
+          if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+            waitingWorker = reg.waiting || newWorker;
+            mostrarToastUpdate();
+          }
+        });
       });
-    });
-  }).catch(function (err) {
-    console.warn('SW registration failed:', err);
+    }).catch(function(){});
   });
-})();
+}
 </script>
-<!-- ↑↑↑ FIN DEL BLOQUE NUEVO ↑↑↑ -->
 </body>
 </html>
