@@ -1524,5 +1524,84 @@ if('serviceWorker' in navigator && location.protocol === 'https:'){
   window.addEventListener('load', ()=> navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 </script>
+<!-- ↓↓↓ AGREGÁ ESTE BLOQUE NUEVO ANTES DE </body> ↓↓↓ -->
+<script>
+(function () {
+  if (!('serviceWorker' in navigator)) return;
+
+  let waitingWorker = null;
+  let toastEl = null;
+
+  function mostrarToastUpdate() {
+    if (toastEl) return; // ya visible
+    toastEl = document.createElement('div');
+    toastEl.id = 'sw-update-toast';
+    toastEl.style.cssText = [
+      'position:fixed', 'bottom:20px', 'right:20px', 'z-index:300',
+      'background:#0e7c5a', 'color:#fff', 'padding:14px 18px',
+      'border-radius:12px', 'box-shadow:0 8px 24px rgba(0,0,0,.25)',
+      'font-family:Segoe UI,system-ui,sans-serif', 'font-size:13.5px',
+      'max-width:320px', 'display:flex', 'flex-direction:column', 'gap:10px'
+    ].join(';');
+
+    toastEl.innerHTML = `
+      <div style="font-weight:700;font-size:14px">🔄 Nueva versión disponible</div>
+      <div style="opacity:.9;line-height:1.4">
+        Hay una actualización de la app lista para activarse.
+        Recomendado: <strong>confirme su pedido primero</strong> y luego actualice.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="sw-upd-later"
+          style="background:rgba(255,255,255,.2);color:#fff;border:none;
+                 padding:7px 12px;border-radius:7px;cursor:pointer;font-size:12.5px">
+          Más tarde
+        </button>
+        <button id="sw-upd-now"
+          style="background:#fff;color:#0e7c5a;border:none;
+                 padding:7px 14px;border-radius:7px;cursor:pointer;font-weight:700;font-size:12.5px">
+          Actualizar ahora
+        </button>
+      </div>`;
+
+    document.body.appendChild(toastEl);
+
+    document.getElementById('sw-upd-now').onclick = function () {
+      if (waitingWorker) {
+        waitingWorker.postMessage('SKIP_WAITING');
+      } else {
+        window.location.reload();
+      }
+    };
+    document.getElementById('sw-upd-later').onclick = function () {
+      if (toastEl) { toastEl.remove(); toastEl = null; }
+      setTimeout(mostrarToastUpdate, 30 * 60 * 1000);
+    };
+  }
+
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    window.location.reload();
+  });
+
+  navigator.serviceWorker.register('sw.js').then(function (reg) {
+    if (reg.waiting) {
+      waitingWorker = reg.waiting;
+      mostrarToastUpdate();
+    }
+    reg.addEventListener('updatefound', function () {
+      const newWorker = reg.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', function () {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          waitingWorker = reg.waiting || newWorker;
+          mostrarToastUpdate();
+        }
+      });
+    });
+  }).catch(function (err) {
+    console.warn('SW registration failed:', err);
+  });
+})();
+</script>
+<!-- ↑↑↑ FIN DEL BLOQUE NUEVO ↑↑↑ -->
 </body>
 </html>
