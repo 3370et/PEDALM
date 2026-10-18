@@ -155,11 +155,12 @@ input::placeholder{color:var(--text-mute)}
 #block-msg{color:var(--text-soft);font-size:14px;margin-bottom:16px;line-height:1.5}
 #block-list{max-height:45vh;overflow-y:auto;text-align:left;background:var(--block-list-bg);border-radius:10px;padding:10px;margin-bottom:16px}
 #block-list h3{font-size:13px;color:var(--text);padding:4px 6px 8px}
-.block-row{display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--border-soft)}
+.block-row{display:flex;align-items:center;gap:8px;padding:6px;border-bottom:1px solid var(--border-soft);flex-wrap:wrap}
 .block-row:last-child{border-bottom:none}
 .bqty{background:var(--green);color:#fff;min-width:36px;text-align:center;border-radius:6px;font-weight:700;font-size:13px;padding:3px 4px;flex-shrink:0}
-.bname{flex:1;font-size:13px;font-weight:600;text-align:left}
-.bcod{font-size:11px;color:var(--text-mute);font-family:monospace}
+.bname{flex:1;font-size:13px;font-weight:600;text-align:left;min-width:0}
+.bcod{font-size:11px;color:var(--text-mute);font-family:monospace;flex-shrink:0}
+.block-obs{display:block;width:100%;font-size:11px;color:var(--orange-text);font-style:italic;margin-top:3px;padding-left:46px}
 .block-total{font-size:12.5px;font-weight:700;color:var(--green-text);padding:8px 6px 2px;text-align:left}
 .block-exit{width:100%;padding:12px;background:var(--block-grad2);color:#fff;font-size:15px;font-weight:600}
 
@@ -198,18 +199,29 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
 .qcol-title{background:var(--orange-col);color:var(--orange-col-txt);font-size:12px;font-weight:700;padding:8px 12px;text-transform:uppercase;letter-spacing:.4px;display:flex;justify-content:space-between;align-items:center}
 .qcol-title small{font-weight:600;font-size:10.5px;color:var(--orange-col-sub)}
 .qcol .qrow:last-child{border-bottom:none}
-.qrow{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-soft);background:var(--panel)}
+.qrow{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--border-soft);background:var(--panel);flex-wrap:wrap}
 .qrow.filled{background:var(--row-filled);box-shadow:inset 3px 0 0 var(--orange)}
 .qin{width:56px;height:36px;text-align:center;font-size:15px;font-weight:700;border:2px solid var(--border-input);border-radius:8px;background:var(--input-bg);color:var(--text);flex-shrink:0;-moz-appearance:textfield}
 .qin::-webkit-outer-spin-button,.qin::-webkit-inner-spin-button{-webkit-appearance:none}
 .qin:focus{outline:none;border-color:var(--orange);background:var(--row-filled)}
 .qin:disabled{background:var(--input-dis-bg);color:var(--input-dis-txt);border-color:var(--border)}
 .qinfo{flex:1;min-width:0}
+.qinfo-row{display:flex;align-items:center;gap:6px}
 .qname{font-size:13.5px;font-weight:600;line-height:1.25}
 .qsub{font-size:11px;color:var(--text-mute)}
 .qsub .cod{font-family:monospace}
 .qdel{background:var(--red-soft);color:var(--red-text);width:26px;height:26px;font-size:12px;font-weight:700;border-radius:6px;flex-shrink:0}
 .qrestore{background:var(--green-soft);color:var(--green-text);width:26px;height:26px;font-size:13px;font-weight:700;border-radius:6px;flex-shrink:0}
+
+/* OBSERVACIONES por artículo */
+.qtoggle{background:transparent;border:none;color:var(--text-mute);font-size:14px;cursor:pointer;padding:4px 6px;flex-shrink:0;border-radius:5px}
+.qtoggle.has-obs{color:var(--orange-text);background:var(--orange-soft);font-weight:700}
+.qtoggle:hover{background:var(--orange-soft);color:var(--orange-text)}
+.qobs{width:100%;margin-top:4px;padding:6px 8px;border:1px solid var(--border-input);border-radius:7px;background:var(--input-bg);color:var(--text);font-size:12px;font-family:inherit}
+.qobs:focus{outline:none;border-color:var(--orange)}
+.qobs::placeholder{color:var(--text-mute);font-style:italic}
+.qrow.expanded .qobs{display:block}
+.qrow:not(.expanded) .qobs{display:none}
 
 /* MARCADORES DE GUARDADO */
 .qsave{width:18px;height:18px;text-align:center;font-size:11px;font-weight:800;line-height:18px;border-radius:5px;flex-shrink:0}
@@ -335,6 +347,7 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
       <div class="quick-tools">
         <button onclick="cargarUltimo()">🔄 Repetir último pedido</button>
         <button onclick="vaciarCarrito()">✕ Vaciar carrito</button>
+        <button onclick="toggleObsTodas()">💬 Expandir observaciones</button>
         <button id="btn-quitar-todos" class="rojo" onclick="quitarTodosSugeridos()">✕✕ Quitar todos los sugeridos</button>
         <button id="btn-anular" class="rojo hidden" onclick="anularPedido()">🗑 Anular mi pedido de hoy</button>
         <button id="btn-ver-todos" class="hidden" onclick="toggleVerTodos()">⭐ Ver todos mis sugeridos</button>
@@ -414,6 +427,10 @@ let abiertasManual = new Set();
 let pedidoHoy = null;
 let verTodos = false;
 let desbloqTimer = null;
+
+/* Observaciones por artículo */
+let obsCarrito = {};           // { CODART: "texto" }
+let obsExpandir = new Set();   // códigos con obs expandida manualmente
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const sanKey = s => String(s).replace(/[.#$\[\]\/]/g, '-');
@@ -549,10 +566,12 @@ function renderBloqueo(){
     let html = '<h3>Su pedido de hoy (solo consulta):</h3>';
     Object.keys(pedidoHoy.items).forEach(c=>{
       const it = pedidoHoy.items[c];
+      const obs = it.obs ? `<div class="block-obs">💬 ${esc(it.obs)}</div>` : '';
       html += `<div class="block-row">
         <span class="bqty">${it.cantidad}</span>
         <span class="bname">${esc(it.ARTICULO || c)}</span>
         <span class="bcod">${esc(c)}</span>
+        ${obs}
       </div>`;
     });
     html += `<div class="block-total">Total: ${Object.keys(pedidoHoy.items).length} artículos · Confirmado: ${esc(pedidoHoy.fecha || '—')}</div>`;
@@ -591,9 +610,7 @@ function activarBloqueo(bloq){
 }
 
 /* ============================================================
-   4) LOGIN / LOGOUT — con CLAVE (campo CLAVE en Firebase)
-   Si CLAVE está vacía o " " → el cliente entra sin clave
-   (transición gradual mientras la macro les asigna una).
+   4) LOGIN / LOGOUT — con CLAVE
 ============================================================ */
 async function login(){
   const cod = sanKey(document.getElementById('client-input').value.trim().toUpperCase());
@@ -603,7 +620,6 @@ async function login(){
 
   if(!cod){ err.textContent = 'Ingrese su código de cliente'; return; }
 
-  /* ---------- SIN CONEXIÓN: valida contra caché local ---------- */
   if(offline || !hayConexion()){
     const cache = leerLS('cache_cli_' + cod);
     const savedPass = localStorage.getItem('pass_' + cod);
@@ -665,6 +681,8 @@ function logout(){
   CLIENTE = null; NOMBRE_CLIENTE = '';
   if(desbloqTimer){ clearTimeout(desbloqTimer); desbloqTimer = null; }
   localStorage.removeItem('pedidos_cliente');
+  obsCarrito = {};
+  obsExpandir.clear();
   document.getElementById('app-screen').classList.add('hidden');
   document.getElementById('block-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
@@ -676,7 +694,7 @@ function logout(){
 }
 
 /* ============================================================
-   5) CARGA DE DATOS (con caché offline)
+   5) CARGA DE DATOS
 ============================================================ */
 async function startApp(){
   document.getElementById('login-screen').classList.add('hidden');
@@ -688,7 +706,7 @@ async function startApp(){
   offline = !hayConexion();
   actualizarBanner();
 
-  /* ================== MODO OFFLINE: todo desde el caché ================== */
+  /* ================== MODO OFFLINE ================== */
   if(offline){
     const cache = leerLS('cache_cli_' + CLIENTE) || {};
     const cacheArt = leerLS('cache_art');
@@ -709,7 +727,15 @@ async function startApp(){
 
     const q = pendientes();
     pedidoHoy = q.length ? q[q.length-1] : null;
+    limpiarCarritoSiCambioJornada();
     carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
+    cargarObsLS();
+    if(pedidoHoy && pedidoHoy.items){
+      obsCarrito = {};
+      Object.keys(pedidoHoy.items).forEach(c=>{
+        if(pedidoHoy.items[c].obs) obsCarrito[c] = pedidoHoy.items[c].obs;
+      });
+    }
 
     document.getElementById('app-screen').classList.remove('hidden');
     construirArbol();
@@ -725,7 +751,7 @@ async function startApp(){
     return;
   }
 
-  /* ================== MODO ONLINE (actualiza el caché) ================== */
+  /* ================== MODO ONLINE ================== */
   try{
     const [sArt, sVent, sFrec, sExcl, sHoy, sBloq, sCli] = await Promise.all([
       db.ref('PEDIDOS/Articulos').once('value'),
@@ -755,13 +781,18 @@ async function startApp(){
     pedidoHoy = sHoy.val();
     if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
       carrito = {};
+      obsCarrito = {};
       Object.keys(pedidoHoy.items).forEach(c=>{
         carrito[c] = pedidoHoy.items[c].cantidad || 1;
+        if(pedidoHoy.items[c].obs) obsCarrito[c] = pedidoHoy.items[c].obs;
       });
       saveCart();
+      guardarObsLS();
     } else {
       pedidoHoy = null;
+      limpiarCarritoSiCambioJornada();
       carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
+      cargarObsLS();
     }
 
     if(estaBloqueado(sBloq.val())){
@@ -999,7 +1030,7 @@ function renderQuick(){
     '<small>' + (modoSesion
       ? 'Modifique cantidades o quite con ✕. ENTER baja al siguiente'
       : 'Escriba cantidades: se guardan directo en el carrito. ENTER baja al siguiente') + '</small>' +
-    '<small>○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar</small>' +
+    '<small>○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar · 💬 observación</small>' +
     '<small class="qjornada" id="quick-jornada"></small>';
   document.getElementById('quick-jornada').textContent =
     '📅 Recepción: ' + formatearJornada(calcularJornada());
@@ -1076,19 +1107,29 @@ function renderQuick(){
       const v = carrito[a.CODART] || '';
       const enCarrito = !!carrito[a.CODART];
       const tit = enCarrito ? 'Quitar del pedido' : 'Quitar de sugeridos';
+      const obs = obsDe(a.CODART);
+      const tieneObs = obs ? 'has-obs' : '';
+      const expandida = obsExpandir.has(a.CODART) ? 'expanded' : '';
       html += `
-      <div class="qrow ${v>0 ? 'filled' : ''}" data-cod="${esc(a.CODART)}">
+      <div class="qrow ${v>0 ? 'filled' : ''} ${expandida}" data-cod="${esc(a.CODART)}">
         <span class="qsave vacio">○</span>
         <input class="qin" type="number" inputmode="numeric" min="0" placeholder="0" value="${v}">
         <div class="qinfo">
-          <div class="qname">${esc(a.ARTICULO)}</div>
-          <div class="qsub"><span class="cod">${esc(a.CODART)}</span> · ${esc(a.TIPO || '')}</div>
+          <div class="qinfo-row">
+            <div style="flex:1;min-width:0">
+              <div class="qname">${esc(a.ARTICULO)}</div>
+              <div class="qsub"><span class="cod">${esc(a.CODART)}</span> · ${esc(a.TIPO || '')}</div>
+            </div>
+            <button class="qtoggle ${tieneObs}" title="Observación para este artículo">💬</button>
+          </div>
+          <input class="qobs" type="text" maxlength="80" placeholder="Ej: los más grandes, sin grasa, etc." value="${esc(obs)}">
         </div>
         <button class="qdel" title="${tit}">✕</button>
       </div>`;
     });
     col.elims.forEach(a=>{
       const guardado = (pedidoHoy.items[a.CODART] && pedidoHoy.items[a.CODART].cantidad) || 0;
+      const obs = (pedidoHoy.items[a.CODART] && pedidoHoy.items[a.CODART].obs) || '';
       html += `
       <div class="qrow eliminado" data-cod="${esc(a.CODART)}">
         <span class="qsave eliminado">●</span>
@@ -1096,6 +1137,7 @@ function renderQuick(){
         <div class="qinfo">
           <div class="qname">${esc(a.ARTICULO)}</div>
           <div class="qsub"><span class="cod">${esc(a.CODART)}</span> · pendiente de eliminación</div>
+          ${obs ? `<div class="qsub" style="color:var(--orange-text);font-style:italic">💬 ${esc(obs)}</div>` : ''}
         </div>
         <button class="qrestore" title="Restaurar al pedido">↩</button>
       </div>`;
@@ -1114,7 +1156,10 @@ function renderQuick(){
     }
 
     const inp = row.querySelector('.qin');
+    const obsInput = row.querySelector('.qobs');
+    const toggleBtn = row.querySelector('.qtoggle');
     pintarMarcador(row);
+
     inp.onclick = ()=> inp.select();
     inp.oninput = ()=>{
       const v = Math.max(0, parseInt(inp.value) || 0);
@@ -1127,6 +1172,29 @@ function renderQuick(){
       if(e.key === 'ArrowDown'){ e.preventDefault(); siguienteQuick(inp); }
       if(e.key === 'ArrowUp'){ e.preventDefault(); anteriorQuick(inp); }
     };
+
+    if(toggleBtn){
+      toggleBtn.onclick = (e)=>{
+        e.stopPropagation();
+        const ex = row.classList.toggle('expanded');
+        if(ex){ obsExpandir.add(cod); setTimeout(()=>obsInput.focus(), 50); }
+        else   { obsExpandir.delete(cod); }
+      };
+    }
+
+    if(obsInput){
+      obsInput.oninput = ()=>{
+        const v = obsInput.value.trim();
+        if(v){ obsCarrito[cod] = v; toggleBtn.classList.add('has-obs'); }
+        else { delete obsCarrito[cod]; toggleBtn.classList.remove('has-obs'); }
+        guardarObsLS();
+      };
+      obsInput.onclick = e=> e.stopPropagation();
+      obsInput.onkeydown = e=>{
+        if(e.key === 'Enter'){ e.preventDefault(); siguienteQuick(inp); }
+      };
+    }
+
     const del = row.querySelector('.qdel');
     if(del){
       del.onclick = ()=>{
@@ -1142,15 +1210,43 @@ function setQuickQty(cod, v){
   if(v > 0) carrito[cod] = v; else delete carrito[cod];
   saveCart(); updateQuickBar(); refreshItemStates();
 }
+
+/* ============================================================
+   9.B) OBSERVACIONES por artículo
+============================================================ */
+function obsDe(cod){ return obsCarrito[cod] || ''; }
+function guardarObsLS(){
+  try{ localStorage.setItem('obs_' + CLIENTE, JSON.stringify(obsCarrito)); }catch(e){}
+}
+function cargarObsLS(){
+  try{ obsCarrito = JSON.parse(localStorage.getItem('obs_' + CLIENTE) || '{}'); }
+  catch(e){ obsCarrito = {}; }
+}
+function toggleObsTodas(){
+  const filas = document.querySelectorAll('#quick-list .qrow:not(.eliminado)');
+  const algunaColapsada = [...filas].some(r => !r.classList.contains('expanded'));
+  filas.forEach(r=>{
+    const cod = r.dataset.cod;
+    r.classList.toggle('expanded', algunaColapsada);
+    if(algunaColapsada) obsExpandir.add(cod); else obsExpandir.delete(cod);
+  });
+  toast(algunaColapsada ? '💬 Observaciones expandidas' : 'Observaciones colapsadas');
+}
+
 function quitarDelCarrito(cod){
   delete carrito[cod];
-  saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
+  delete obsCarrito[cod];
+  obsExpandir.delete(cod);
+  saveCart(); guardarObsLS(); updateQuickBar(); refreshItemStates(); renderQuick();
   toast('✕ Quitado — confirme para que la eliminación quede guardada');
 }
 function restaurarItem(cod){
   const guardado = (pedidoHoy && pedidoHoy.items && pedidoHoy.items[cod])
                     ? (pedidoHoy.items[cod].cantidad || 1) : 1;
+  const obsGuardada = (pedidoHoy && pedidoHoy.items && pedidoHoy.items[cod] && pedidoHoy.items[cod].obs) || '';
   carrito[cod] = guardado;
+  if(obsGuardada) obsCarrito[cod] = obsGuardada;
+  guardarObsLS();
   saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
   toast('↩ Restaurado: ' + (articulos[cod] ? articulos[cod].ARTICULO : cod) + ' — ' + guardado);
 }
@@ -1201,6 +1297,9 @@ function vaciarCarrito(){
                  : '') +
       '\n(Recuerde confirmar después para que el cambio quede guardado)')) return;
   carrito = {};
+  obsCarrito = {};
+  obsExpandir.clear();
+  guardarObsLS();
   saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
   toast('Carrito vaciado');
 }
@@ -1217,7 +1316,12 @@ async function cargarUltimo(){
                   cods.length + ' artículos)?')) return;
       carrito = {};
     }
-    cods.forEach(c=>{ carrito[c] = ult.items[c].cantidad || 1; });
+    cods.forEach(c=>{
+      carrito[c] = ult.items[c].cantidad || 1;
+      if(ult.items[c].obs) obsCarrito[c] = ult.items[c].obs;
+      else delete obsCarrito[c];
+    });
+    guardarObsLS();
     saveCart(); updateQuickBar(); refreshItemStates(); renderQuick();
     toast('🔄 Último pedido cargado: ' + cods.length + ' artículos');
   }catch(e){
@@ -1231,10 +1335,10 @@ async function cargarUltimo(){
 function exportarCSV(){
   const cods = Object.keys(carrito);
   if(!cods.length){ toast('El carrito está vacío'); return; }
-  const rows = [['CODART','ARTICULO','LINEA','TIPO','CANTIDAD']];
+  const rows = [['CODART','ARTICULO','LINEA','TIPO','CANTIDAD','OBSERVACION']];
   cods.forEach(c=>{
     const a = articulos[c] || {};
-    rows.push([c, a.ARTICULO || '', a.LINEA || '', a.TIPO || '', carrito[c]]);
+    rows.push([c, a.ARTICULO || '', a.LINEA || '', a.TIPO || '', carrito[c], obsCarrito[c] || '']);
   });
   const csv = '\uFEFF' + rows.map(r=>r.map(v=>{
     const s = String(v ?? '');
@@ -1423,7 +1527,30 @@ function aplicarBusqueda(){
 /* ============================================================
    13) CONFIRMAR / ANULAR
 ============================================================ */
-function saveCart(){ localStorage.setItem('carrito_'+CLIENTE, JSON.stringify(carrito)); }
+function saveCart(){
+  localStorage.setItem('carrito_'+CLIENTE, JSON.stringify(carrito));
+  localStorage.setItem('carrito_fecha_' + CLIENTE, calcularJornada());
+}
+
+/* Limpia el carrito y las obs si la jornada cambió (después de medianoche).
+   Así cada día arranca con un pedido en blanco, salvo que el cliente use
+   "Repetir último pedido" para traer el anterior. */
+function limpiarCarritoSiCambioJornada(){
+  if(!CLIENTE) return false;
+  const hoy = calcularJornada();
+  const fechaCarrito = localStorage.getItem('carrito_fecha_' + CLIENTE);
+  if(!fechaCarrito) return false;            // no había carrito previo
+  if(fechaCarrito === hoy) return false;     // mismo día, no tocar
+  // Cambió la jornada → limpiar
+  localStorage.removeItem('carrito_' + CLIENTE);
+  localStorage.removeItem('carrito_fecha_' + CLIENTE);
+  localStorage.removeItem('obs_' + CLIENTE);
+  carrito = {};
+  obsCarrito = {};
+  obsExpandir.clear();
+  toast('🆕 Nueva jornada — carrito reiniciado');
+  return true;
+}
 
 async function submitOrder(){
   const cods = Object.keys(carrito);
@@ -1441,7 +1568,11 @@ async function submitOrder(){
   const jornada = calcularJornada();
   const items = {};
   cods.forEach(c=>{
-    items[c] = { ARTICULO: articulos[c] ? articulos[c].ARTICULO : '', cantidad: carrito[c] };
+    items[c] = {
+      ARTICULO: articulos[c] ? articulos[c].ARTICULO : '',
+      cantidad: carrito[c],
+      obs: obsCarrito[c] || ''
+    };
   });
   const payload = {
     jornada: jornada,
@@ -1483,6 +1614,11 @@ async function submitOrder(){
         db.ref('PEDIDOS/Frecuentes/' + CLIENTE + '/' + c).set(true).catch(()=>{});
       }
     });
+    // Limpiar obs de artículos que ya no están en el carrito
+    Object.keys(obsCarrito).forEach(c=>{
+      if(!carrito[c]) delete obsCarrito[c];
+    });
+    guardarObsLS();
     renderQuick(); refreshItemStates();
     toast('✔ Pedido guardado — jornada del ' + formatearJornada(jornada));
   }catch(e){
@@ -1504,7 +1640,10 @@ async function anularPedidoInterno(){
     escribirLS('pend_' + CLIENTE, pendientes().filter(p=>p.jornada !== jornada));
     pedidoHoy = null;
     carrito = {};
+    obsCarrito = {};
+    obsExpandir.clear();
     localStorage.removeItem('carrito_'+CLIENTE);
+    localStorage.removeItem('obs_'+CLIENTE);
     renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner();
     toast('🗑 Pedido anulado (sin conexión)');
     return;
@@ -1513,7 +1652,10 @@ async function anularPedidoInterno(){
     await db.ref('PEDIDOS/Pedidos/' + jornada + '/' + CLIENTE).remove();
     pedidoHoy = null;
     carrito = {};
+    obsCarrito = {};
+    obsExpandir.clear();
     localStorage.removeItem('carrito_'+CLIENTE);
+    localStorage.removeItem('obs_'+CLIENTE);
     renderQuick(); refreshItemStates(); updateQuickBar();
     toast('🗑 Pedido de hoy anulado');
   }catch(e){
