@@ -410,7 +410,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 const HORA_CORTE = null;
-const SALTAR_FINDES = true;
+/* Jornada de fin de semana: sábado y domingo comparten la fecha del DOMINGO.
+   El lunes arranca pedido nuevo con su propia fecha. */
+const FINDE_DOMINGO = true;
 const CLIENTE_FIJO = "";
 
 /* ============================================================
@@ -536,9 +538,8 @@ window.addEventListener('offline', ()=>{ offline = true; actualizarBanner(); });
 function calcularJornada(){
   const d = new Date();
   if(HORA_CORTE !== null && d.getHours() >= HORA_CORTE) d.setDate(d.getDate() + 1);
-  if(SALTAR_FINDES){
-    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-  }
+  /* Fin de semana: sábado y domingo → jornada del domingo; lunes → pedido nuevo */
+  if(FINDE_DOMINGO && d.getDay() === 6) d.setDate(d.getDate() + 1);
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
