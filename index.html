@@ -176,8 +176,12 @@ header button{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;font-
 
 /* CONTENIDO */
 .container{max-width:1200px;margin:0 auto;padding:16px}
-#search{width:100%;padding:13px 16px;border:2px solid var(--border-input);border-radius:12px;background:var(--input-bg);color:var(--text);font-size:15px;margin-bottom:10px}
+.search-wrap{position:relative;margin-bottom:10px}
+#search{width:100%;padding:13px 44px 13px 16px;border:2px solid var(--border-input);border-radius:12px;background:var(--input-bg);color:var(--text);font-size:15px}
 #search:focus{outline:none;border-color:var(--green)}
+.search-clear{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:none;background:var(--border-soft);color:var(--text-soft);font-size:14px;font-weight:700;cursor:pointer;display:none;align-items:center;justify-content:center;line-height:1;padding:0}
+.search-wrap.has-text .search-clear{display:flex}
+.search-clear:hover{background:var(--red-soft);color:var(--red-text)}
 .toolbar{display:flex;gap:8px;margin-bottom:14px}
 .tool-btn{background:var(--panel);border:1px solid var(--border);color:var(--green-text);padding:8px 14px;font-size:13px;font-weight:600}
 h2{font-size:17px;margin:14px 0 12px;display:flex;align-items:center;gap:8px}
@@ -190,6 +194,21 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
 .quick-head{display:flex;justify-content:space-between;align-items:center;background:var(--panel-head);color:var(--orange-text);padding:11px 14px;font-weight:700;font-size:14.5px}
 .quick-head small{display:block;font-weight:400;font-size:11px;color:var(--orange-col-sub);margin-top:2px}
 .qjornada{color:var(--text-soft);font-size:10.5px}
+.qt-top{display:flex;align-items:center}
+.qhelp-btn{background:rgba(255,255,255,.6);border:1px solid var(--orange-border);color:var(--orange-text);width:21px;height:21px;border-radius:50%;font-size:12.5px;font-weight:800;cursor:pointer;margin-left:8px;flex-shrink:0;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center}
+.qhelp-btn:hover{background:var(--orange-col);transform:scale(1.08)}
+body.dark .qhelp-btn{background:rgba(0,0,0,.35)}
+body.dark .qhelp-btn:hover{background:rgba(0,0,0,.55)}
+#help-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:150;display:flex;align-items:center;justify-content:center;padding:18px}
+.help-box{background:var(--panel);color:var(--text);border-radius:14px;max-width:430px;width:100%;max-height:84vh;overflow-y:auto;box-shadow:var(--shadow)}
+.help-head{display:flex;justify-content:space-between;align-items:center;background:var(--panel-head);color:var(--orange-text);padding:13px 16px;font-size:15px;border-bottom:1px solid var(--orange-border);position:sticky;top:0}
+.help-close{background:var(--panel);border:1px solid var(--orange-border);color:var(--orange-text);width:28px;height:28px;border-radius:8px;font-weight:700;cursor:pointer;flex-shrink:0;font-size:13px;line-height:1}
+#help-body{padding:14px 16px;font-size:13.5px;line-height:1.6}
+#help-body ul{margin:0 0 10px;padding-left:20px}
+#help-body li{margin-bottom:7px}
+.help-leyenda{background:var(--panel-soft);border:1px solid var(--border);border-radius:9px;padding:9px 12px;font-size:12.5px;color:var(--text-soft);margin-bottom:8px}
+.help-jornada{font-size:12.5px;color:var(--text-soft)}
+.help-ok{display:block;width:calc(100% - 32px);margin:4px 16px 16px;background:var(--green);color:#fff;border:none;padding:11px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer}
 .quick-tools{display:flex;gap:8px;padding:0 14px 10px;background:var(--panel-head);flex-wrap:wrap}
 .quick-tools button{background:var(--panel);border:1px solid var(--orange-border);color:var(--orange-text);padding:6px 12px;font-size:12px;font-weight:600;border-radius:6px}
 .quick-tools button.rojo{background:var(--red-soft);color:var(--red);border-color:var(--red-border)}
@@ -336,7 +355,10 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
   </header>
 
   <div class="container">
-    <input id="search" placeholder="🔍 Buscar por nombre, código, tipo o línea..." oninput="onSearch()">
+    <div class="search-wrap" id="search-wrap">
+      <input id="search" placeholder="🔍 Buscar por nombre, código, tipo o línea..." oninput="onSearch()" autocomplete="off">
+      <button type="button" class="search-clear" title="Limpiar búsqueda" onclick="limpiarBusqueda()">✕</button>
+    </div>
 
     <!-- PANEL DE PEDIDO -->
     <div id="quick-box" class="hidden">
@@ -369,6 +391,18 @@ h2 .count{background:var(--green);color:#fff;font-size:11px;padding:2px 9px;bord
       <button class="tool-btn" onclick="colapsarTodo()">▸ Colapsar todo</button>
     </div>
     <div id="lineas-box"></div>
+  </div>
+</div>
+
+<!-- POPUP DE AYUDA DEL PANEL DE PEDIDO -->
+<div id="help-overlay" class="hidden" onclick="if(event.target===this)cerrarAyuda()">
+  <div class="help-box">
+    <div class="help-head">
+      <span>❓ Cómo funciona su pedido</span>
+      <button class="help-close" onclick="cerrarAyuda()" title="Cerrar">✕</button>
+    </div>
+    <div id="help-body"></div>
+    <button class="help-ok" onclick="cerrarAyuda()">Entendido</button>
   </div>
 </div>
 
@@ -744,6 +778,7 @@ async function startApp(){
     renderQuick();
     refreshItemStates();
     document.getElementById('search').value = '';
+    document.getElementById('search-wrap').classList.remove('has-text');
     document.getElementById('cat-count').textContent =
       lineasOrden.length + ' líneas · ' + Object.keys(articulos).length + ' art. (caché del ' + (cache.cuando || '?') + ')';
 
@@ -807,6 +842,7 @@ async function startApp(){
     renderQuick();
     refreshItemStates();
     document.getElementById('search').value = '';
+    document.getElementById('search-wrap').classList.remove('has-text');
     document.getElementById('cat-count').textContent =
       lineasOrden.length + ' líneas · ' + Object.keys(articulos).length + ' art.';
 
@@ -1019,6 +1055,36 @@ function pintarMarcador(row){
 /* ============================================================
    9) PANEL DE PEDIDO
 ============================================================ */
+/* ---------- POPUP DE AYUDA DEL PANEL DE PEDIDO ---------- */
+function abrirAyudaPedido(){
+  const sesionBase = !!(pedidoHoy && Object.keys(carrito).length);
+  const modoSesion = sesionBase && !verTodos;
+  const pasos = modoSesion
+    ? '<li><b>Modifique cantidades</b> en las casillas: se guardan solas en el carrito.</li>' +
+      '<li>Quite un artículo con el botón <b>✕</b>: queda tachado hasta que confirme o guarde.</li>' +
+      '<li>Con <b>ENTER</b> (o flechas ↓↑) salta al siguiente o anterior artículo.</li>' +
+      '<li>Toque <b>💬</b> para escribir una observación de ese artículo.</li>' +
+      '<li>Confirme con <b>✔ CONFIRMAR PEDIDO</b> o descargue su remito con <b>📄 CSV</b>.</li>' +
+      '<li>Con <b>⭐ Ver todos mis sugeridos</b> vuelve a la vista de artículos habituales.</li>'
+    : '<li>Estos son sus <b>artículos habituales</b> agrupados por línea según su historial.</li>' +
+      '<li><b>Escriba cantidades</b> en las casillas: se guardan directo en el carrito.</li>' +
+      '<li>Con <b>ENTER</b> (o flechas ↓↑) salta al siguiente o anterior artículo.</li>' +
+      '<li>Toque <b>💬</b> para escribir una observación de ese artículo.</li>' +
+      '<li>Use <b>🔄 Repetir último pedido</b> para cargar de una sola vez lo del pedido anterior.</li>' +
+      '<li>El buscador de arriba filtra esta lista y también el catálogo; con <b>✕</b> se limpia.</li>';
+  document.getElementById('help-body').innerHTML =
+    '<ul>' + pasos + '</ul>' +
+    '<div class="help-leyenda"><b>Estados del artículo:</b> ○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar · 💬 observación</div>' +
+    '<div class="help-jornada">📅 Recepción: ' + formatearJornada(calcularJornada()) + '</div>';
+  document.getElementById('help-overlay').classList.remove('hidden');
+}
+function cerrarAyuda(){
+  document.getElementById('help-overlay').classList.add('hidden');
+}
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && !document.getElementById('help-overlay').classList.contains('hidden')) cerrarAyuda();
+});
+
 function renderQuick(){
   const box = document.getElementById('quick-box');
   const qn = queryNorm();
@@ -1027,11 +1093,8 @@ function renderQuick(){
   const modoSesion = sesionBase && !verTodos;
 
   document.getElementById('quick-title').innerHTML =
-    (modoSesion ? '📝 Su pedido en curso' : '⭐ Su pedido — habituales por línea') +
-    '<small>' + (modoSesion
-      ? 'Modifique cantidades o quite con ✕. ENTER baja al siguiente'
-      : 'Escriba cantidades: se guardan directo en el carrito. ENTER baja al siguiente') + '</small>' +
-    '<small>○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar · 💬 observación</small>' +
+    '<span class="qt-top">' + (modoSesion ? '📝 Su pedido en curso' : '⭐ Su pedido — habituales por línea') +
+    '<button type="button" class="qhelp-btn" title="¿Cómo funciona? Ver ayuda" onclick="abrirAyudaPedido()">?</button></span>' +
     '<small class="qjornada" id="quick-jornada"></small>';
   document.getElementById('quick-jornada').textContent =
     '📅 Recepción: ' + formatearJornada(calcularJornada());
@@ -1486,8 +1549,19 @@ function matchArt(a, qn){
 }
 let searchTimer;
 function onSearch(){
+  const sw = document.getElementById('search-wrap');
+  if(sw) sw.classList.toggle('has-text', !!document.getElementById('search').value);
   clearTimeout(searchTimer);
   searchTimer = setTimeout(aplicarBusqueda, 180);
+}
+function limpiarBusqueda(){
+  const inp = document.getElementById('search');
+  if(!inp.value) return;
+  inp.value = '';
+  const sw = document.getElementById('search-wrap');
+  if(sw) sw.classList.remove('has-text');
+  aplicarBusqueda();
+  inp.focus();
 }
 function aplicarBusqueda(){
   const qn = queryNorm();
