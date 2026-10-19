@@ -90,6 +90,7 @@ tr.rowp:hover{background:var(--panel-soft)}
 .det-row td{background:var(--tipo-bg);padding:8px 12px 12px 44px;font-size:12.5px}
 .det-cli{display:inline-flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 10px;margin:3px 4px 0 0}
 .det-cli b{color:var(--green-text)}
+.det-cli .det-obs{color:var(--orange-text);font-style:italic;font-size:11.5px;margin-left:4px}
 /* Cabecera de línea de producto (clicable → copia el detalle) */
 .lin-head td{background:var(--tipo-bg);padding:10px 12px;cursor:pointer;user-select:none}
 .lin-head:hover td{filter:brightness(.97)}
@@ -106,6 +107,9 @@ tr.rowp:hover{background:var(--panel-soft)}
 .ccard table{border:none;font-size:12.5px}
 .ccard th{padding:6px 8px;font-size:10.5px}
 .ccard td{padding:5px 8px}
+.ccard .art-cell{display:flex;flex-direction:column;gap:1px}
+.ccard .art-name{font-weight:600}
+.ccard .art-obs{color:var(--orange-text);font-style:italic;font-size:11px;line-height:1.2}
 .badge-n{background:var(--green);color:#fff;border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
@@ -582,7 +586,7 @@ function copiarLista(tipo){
 }
 
 /* Copia UNA LÍNEA de producto:
-   sin modo (clic en la cabecera) → detalle completo con desglose por cliente
+   sin modo (clic en la cabecera) → detalle completo con desglose por cliente (incluye obs)
    modo 'totales' (botón 📋 solo totales) → artículos y totales, SIN clientes */
 function copiarLinea(lin, modo){
   const cons = consolidar().filter(m=> (m.linea || '(SIN LÍNEA)') === lin);
@@ -599,7 +603,9 @@ function copiarLinea(lin, modo){
     cons.forEach(m=>{
       txt += '\n' + m.art + ' (' + m.cod + ') — TOTAL: ' + m.total + '\n';
       m.clientes.forEach(c=>{
-        txt += '   • ' + c.cant + ' — ' + c.nombre + ' (' + c.cli + ')\n';
+        txt += '   • ' + c.cant + ' — ' + c.nombre + ' (' + c.cli + ')';
+        if(c.obs) txt += '  💬 ' + c.obs;
+        txt += '\n';
       });
     });
   }
@@ -645,6 +651,7 @@ function consolidar(){
     const items = p.items || {};
     Object.keys(items).forEach(cod=>{
       const cant = items[cod].cantidad || 0;
+      const obs = items[cod].obs || '';
       const a = artInfo[cod] || {};
       if(!map[cod]){
         map[cod] = {
@@ -655,7 +662,7 @@ function consolidar(){
       }
       map[cod].total += cant;
       map[cod].ncli++;
-      map[cod].clientes.push({cli, nombre: p.nombreCliente || cli, cant});
+      map[cod].clientes.push({cli, nombre: p.nombreCliente || cli, cant, obs});
     });
   });
   Object.values(map).forEach(m=> m.clientes.sort((x,y)=> y.cant - x.cant));
@@ -787,7 +794,10 @@ function filaConsHTML(m){
   </tr>
   <tr class="det-row hidden" data-det="${esc(m.cod)}">
     <td colspan="5">
-      ${m.clientes.map(c=>`<span class="det-cli"><b>${c.cant}</b> ${esc(c.nombre)} <span class="cod">${esc(c.cli)}</span></span>`).join('')}
+      ${m.clientes.map(c=>{
+        const obsHtml = c.obs ? `<span class="det-obs">💬 ${esc(c.obs)}</span>` : '';
+        return `<span class="det-cli"><b>${c.cant}</b> ${esc(c.nombre)} <span class="cod">${esc(c.cli)}</span>${obsHtml}</span>`;
+      }).join('')}
     </td>
   </tr>`;
 }
@@ -837,7 +847,12 @@ function renderClientes(){
         <tr><th>Código</th><th>Artículo</th><th style="text-align:right">Cant.</th></tr>
         ${items.map(i=>{
           const it = p.items[i];
-          return `<tr><td class="cod">${esc(i)}</td><td>${esc(it.ARTICULO || i)}</td><td class="num">${it.cantidad||0}</td></tr>`;
+          const obs = it.obs ? `<span class="art-obs">💬 ${esc(it.obs)}</span>` : '';
+          return `<tr>
+            <td class="cod">${esc(i)}</td>
+            <td><div class="art-cell"><span class="art-name">${esc(it.ARTICULO || i)}</span>${obs}</div></td>
+            <td class="num">${it.cantidad||0}</td>
+          </tr>`;
         }).join('')}
       </table>
     </div>`;
@@ -910,11 +925,20 @@ function exportCSV(){
     let clis = Object.keys(data);
     if(q) clis = clis.filter(c=> norm((data[c].nombreCliente||'') + ' ' + c).includes(q));
     if(!clis.length){ toast('Nada que exportar'); return; }
-    rows.push(['JORNADA','CLIENTE','NOMBRE','CODART','ARTICULO','CANTIDAD','CONFIRMADO']);
+    rows.push(['JORNADA','CLIENTE','NOMBRE','CODART','ARTICULO','CANTIDAD','OBSERVACION','CONFIRMADO']);
     clis.forEach(c=>{
       const p = data[c];
       Object.keys(p.items || {}).forEach(i=>{
-        rows.push([selFecha, c, p.nombreCliente||'', i, p.items[i].ARTICULO||'', p.items[i].cantidad||0, p.fecha||'']);
+        rows.push([
+          selFecha,
+          c,
+          p.nombreCliente||'',
+          i,
+          p.items[i].ARTICULO||'',
+          p.items[i].cantidad||0,
+          p.items[i].obs || '',
+          p.fecha||''
+        ]);
       });
     });
     nombre = 'pedidos_detalle_' + selFecha + '.csv';
