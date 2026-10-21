@@ -206,6 +206,7 @@ tr.rowp:hover{background:var(--panel-soft)}
       <option value="tab">Separador: tabulación</option>
       <option value="|">Separador: pipe |</option>
     </select>
+    <button class="csv-btn" onclick="copiarCSV()" title="Copiar al portapapeles el mismo contenido del CSV por cliente (con el separador elegido; con tabulación pega directo en Excel)">📋 Copiar CSV</button>
   </div>
 
   <div id="sec-cons"></div>
@@ -904,77 +905,101 @@ function copiarConsolidado(){
 }
 
 /* ============================================================
-   9) EXPORTAR CSV
+   9) EXPORTAR / COPIAR CSV
 ============================================================ */
 function delimitadorCSV(){
   const sel = document.getElementById('csv-del');
   const v = sel ? sel.value : ',';
   return v === 'tab' ? '\t' : v;
 }
+function nombreDelimitador(){
+  const DEL = delimitadorCSV();
+  return DEL === '\t' ? 'tabulación' : DEL === ',' ? 'coma' : DEL === ';' ? 'punto y coma' : 'pipe';
+}
 function guardarDelimitador(){
   try{ localStorage.setItem('csv_del', document.getElementById('csv-del').value); }catch(e){}
 }
 
-function exportCSV(){
+/* Construye las filas del CSV según la pestaña activa (null si no hay nada) */
+function construirFilasCSV(){
   const q = qn();
-  const DEL = delimitadorCSV();
-  let rows = [], nombre = '';
 
   if(tab === 'cons'){
     /* Mantiene el orden por línea (coherente con la vista) */
     const cons = consolidar().filter(m=> !q ||
       norm(m.art + ' ' + m.cod + ' ' + m.linea).includes(q));
-    if(!cons.length){ toast('Nada que exportar'); return; }
+    if(!cons.length){ toast('Nada que exportar'); return null; }
     cons.sort((x,y)=>{
       const c = String(x.linea || 'ZZZ').localeCompare(String(y.linea || 'ZZZ'));
       if(c !== 0) return c;
       return (y.total - x.total) || String(x.art).localeCompare(String(y.art));
     });
-    rows.push(['LINEA','CODART','ARTICULO','TIPO','TOTAL','CLIENTES']);
+    const rows = [['LINEA','CODART','ARTICULO','TIPO','TOTAL','CLIENTES']];
     cons.forEach(m=> rows.push([m.linea, m.cod, m.art, m.tipo, m.total, m.ncli]));
-    nombre = 'consolidado_' + selFecha + '.csv';
-  } else {
-    /* Formato de importación: 13 columnas fijas */
-    let clis = Object.keys(data);
-    if(q) clis = clis.filter(c=> norm((data[c].nombreCliente||'') + ' ' + c).includes(q));
-    if(!clis.length){ toast('Nada que exportar'); return; }
-    rows.push(['CLIENTE','NOMBRE','LINEA','TIPO','PRODUCTO','PEDIDO','PESO','COMENTARIO','CODIGO PRODUCTO','NUMERO PEDIDO','FECHA','EJECUTIVO','PEDIDO ORIGINAL']);
-    clis.forEach(c=>{
-      const p = data[c];
-      Object.keys(p.items || {}).forEach(i=>{
-        const a = artInfo[i] || {};
-        const cant = p.items[i].cantidad || 0;
-        rows.push([
-          c,                                   /* CLIENTE (código) */
-          p.nombreCliente || '',               /* NOMBRE */
-          a.LINEA || '',                       /* LINEA (catálogo) */
-          a.TIPO || '',                        /* TIPO (catálogo) */
-          p.items[i].ARTICULO || a.ARTICULO || i, /* PRODUCTO */
-          cant,                                /* PEDIDO */
-          '',                                  /* PESO (vacío) */
-          p.items[i].obs || '',                /* COMENTARIO */
-          i,                                   /* CODIGO PRODUCTO */
-          1,                                   /* NUMERO PEDIDO (fijo) */
-          String(p.fecha || selFecha).replace(/,\s*/, ' '), /* FECHA guardado */
-          '',                                  /* EJECUTIVO (vacío) */
-          cant                                 /* PEDIDO ORIGINAL */
-        ]);
-      });
-    });
-    nombre = 'pedidos_detalle_' + selFecha + '.csv';
+    return {rows, nombre: 'consolidado_' + selFecha + '.csv'};
   }
 
-  const csv = '\uFEFF' + rows.map(r=>r.map(v=>{
+  /* Formato de importación: 13 columnas fijas */
+  let clis = Object.keys(data);
+  if(q) clis = clis.filter(c=> norm((data[c].nombreCliente||'') + ' ' + c).includes(q));
+  if(!clis.length){ toast('Nada que exportar'); return null; }
+  const rows = [['CLIENTE','NOMBRE','LINEA','TIPO','PRODUCTO','PEDIDO','PESO','COMENTARIO','CODIGO PRODUCTO','NUMERO PEDIDO','FECHA','EJECUTIVO','PEDIDO ORIGINAL']];
+  clis.forEach(c=>{
+    const p = data[c];
+    Object.keys(p.items || {}).forEach(i=>{
+      const a = artInfo[i] || {};
+      const cant = p.items[i].cantidad || 0;
+      rows.push([
+        c,                                   /* CLIENTE (código) */
+        p.nombreCliente || '',               /* NOMBRE */
+        a.LINEA || '',                       /* LINEA (catálogo) */
+        a.TIPO || '',                        /* TIPO (catálogo) */
+        p.items[i].ARTICULO || a.ARTICULO || i, /* PRODUCTO */
+        cant,                                /* PEDIDO */
+        '',                                  /* PESO (vacío) */
+        p.items[i].obs || '',                /* COMENTARIO */
+        i,                                   /* CODIGO PRODUCTO */
+        1,                                   /* NUMERO PEDIDO (fijo) */
+        String(p.fecha || selFecha).replace(/,\s*/, ' '), /* FECHA guardado */
+        '',                                  /* EJECUTIVO (vacío) */
+        cant                                 /* PEDIDO ORIGINAL */
+      ]);
+    });
+  });
+  return {rows, nombre: 'pedidos_detalle_' + selFecha + '.csv'};
+}
+
+function csvDesdeFilas(rows){
+  const DEL = delimitadorCSV();
+  return rows.map(r=>r.map(v=>{
     const s = String(v ?? '');
     return (s.includes(DEL) || /["\n\r]/.test(s)) ? '"' + s.replace(/"/g,'""') + '"' : s;
   }).join(DEL)).join('\r\n');
+}
+
+function exportCSV(){
+  const r = construirFilasCSV();
+  if(!r) return;
+  const csv = '\uFEFF' + csvDesdeFilas(r.rows);   /* BOM para Excel */
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = nombre;
+  a.href = url; a.download = r.nombre;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  toast('📄 ' + nombre + ' exportado (' + (DEL === '\t' ? 'tabulación' : DEL === ',' ? 'coma' : DEL === ';' ? 'punto y coma' : 'pipe') + ')');
+  toast('📄 ' + r.nombre + ' exportado (' + nombreDelimitador() + ')');
+}
+
+function copiarCSV(){
+  const r = construirFilasCSV();
+  if(!r) return;
+  const txt = csvDesdeFilas(r.rows);   /* sin BOM para portapapeles */
+  const done = ()=> toast('📋 CSV copiado: ' + (r.rows.length - 1) + ' filas · separador ' + nombreDelimitador());
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
+  } else {
+    fallbackCopiar(txt, done);
+  }
 }
 
 window.addEventListener('load', init);
