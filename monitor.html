@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pedidos — Grupo ORO</title>
+<title>Monitor de Pedidos — Grupo ORO</title>
 <meta name="theme-color" content="#C8102E">
 <link rel="icon" href="icon-192.png">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -79,6 +79,7 @@ header button{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;font-
 #search{flex:1;min-width:180px;padding:10px 14px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:14px}
 #search:focus{outline:none;border-color:var(--green)}
 .csv-btn{background:var(--green-soft);color:var(--green-text);border:1px solid var(--green-border);padding:10px 14px;font-size:12.5px;font-weight:700;border-radius:9px}
+.csv-del{background:var(--panel);color:var(--green-text);border:1px solid var(--green-border);padding:9px 8px;font-size:12.5px;font-weight:700;border-radius:9px}
 
 table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;font-size:13.5px}
 th{background:var(--tipo-bg);color:var(--green-text);text-align:left;padding:10px 12px;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0}
@@ -90,7 +91,6 @@ tr.rowp:hover{background:var(--panel-soft)}
 .det-row td{background:var(--tipo-bg);padding:8px 12px 12px 44px;font-size:12.5px}
 .det-cli{display:inline-flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 10px;margin:3px 4px 0 0}
 .det-cli b{color:var(--green-text)}
-.det-cli .det-obs{color:var(--orange-text);font-style:italic;font-size:11.5px;margin-left:4px}
 /* Cabecera de línea de producto (clicable → copia el detalle) */
 .lin-head td{background:var(--tipo-bg);padding:10px 12px;cursor:pointer;user-select:none}
 .lin-head:hover td{filter:brightness(.97)}
@@ -107,9 +107,6 @@ tr.rowp:hover{background:var(--panel-soft)}
 .ccard table{border:none;font-size:12.5px}
 .ccard th{padding:6px 8px;font-size:10.5px}
 .ccard td{padding:5px 8px}
-.ccard .art-cell{display:flex;flex-direction:column;gap:1px}
-.ccard .art-name{font-weight:600}
-.ccard .art-obs{color:var(--orange-text);font-style:italic;font-size:11px;line-height:1.2}
 .badge-n{background:var(--green);color:#fff;border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
@@ -162,7 +159,7 @@ tr.rowp:hover{background:var(--panel-soft)}
   <div class="head-left">
     <img src="logo.png" alt="" class="head-logo" onerror="this.style.display='none'">
     <div>
-      <strong>Pedidos</strong>
+      <strong>Monitor de Pedidos</strong>
       <small>Grupo ORO — en tiempo real</small>
     </div>
   </div>
@@ -203,6 +200,12 @@ tr.rowp:hover{background:var(--panel-soft)}
     <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
     <button class="csv-btn" onclick="copiarConsolidado()" title="Copiar artículos y totales del consolidado, sin detalle de clientes">📋 Copiar consolidado</button>
     <button class="csv-btn" onclick="exportCSV()">📄 Exportar CSV</button>
+    <select id="csv-del" class="csv-del" onchange="guardarDelimitador()" title="Separador de columnas del archivo CSV">
+      <option value=",">Separador: coma</option>
+      <option value=";">Separador: punto y coma</option>
+      <option value="tab">Separador: tabulación</option>
+      <option value="|">Separador: pipe |</option>
+    </select>
   </div>
 
   <div id="sec-cons"></div>
@@ -269,7 +272,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 const HORA_CORTE = null;
-const SALTAR_FINDES = true;
+/* Jornada de fin de semana: sábado y domingo comparten la fecha del DOMINGO.
+   El lunes arranca pedido nuevo con su propia fecha. */
+const FINDE_DOMINGO = true;
 
 /* PIN de acceso al monitor y acciones de bloqueo. "" = sin pin */
 const ADMIN_PIN = "";
@@ -314,9 +319,8 @@ document.getElementById('tg-ico').textContent =
 function calcularJornada(){
   const d = new Date();
   if(HORA_CORTE !== null && d.getHours() >= HORA_CORTE) d.setDate(d.getDate() + 1);
-  if(SALTAR_FINDES){
-    while(d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
-  }
+  /* Fin de semana: sábado y domingo → jornada del domingo; lunes → pedido nuevo */
+  if(FINDE_DOMINGO && d.getDay() === 6) d.setDate(d.getDate() + 1);
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
@@ -448,6 +452,15 @@ async function init(){
   }
 
   selFecha = calcularJornada();
+
+  /* separador CSV elegido por el usuario (coma por defecto) */
+  try{
+    const delGuardado = localStorage.getItem('csv_del');
+    if(delGuardado){
+      const sel = document.getElementById('csv-del');
+      if(sel && [...sel.options].some(o=>o.value === delGuardado)) sel.value = delGuardado;
+    }
+  }catch(e){}
 
   try{
     const [sArt, sCli] = await Promise.all([
@@ -586,7 +599,7 @@ function copiarLista(tipo){
 }
 
 /* Copia UNA LÍNEA de producto:
-   sin modo (clic en la cabecera) → detalle completo con desglose por cliente (incluye obs)
+   sin modo (clic en la cabecera) → detalle completo con desglose por cliente
    modo 'totales' (botón 📋 solo totales) → artículos y totales, SIN clientes */
 function copiarLinea(lin, modo){
   const cons = consolidar().filter(m=> (m.linea || '(SIN LÍNEA)') === lin);
@@ -603,9 +616,7 @@ function copiarLinea(lin, modo){
     cons.forEach(m=>{
       txt += '\n' + m.art + ' (' + m.cod + ') — TOTAL: ' + m.total + '\n';
       m.clientes.forEach(c=>{
-        txt += '   • ' + c.cant + ' — ' + c.nombre + ' (' + c.cli + ')';
-        if(c.obs) txt += '  💬 ' + c.obs;
-        txt += '\n';
+        txt += '   • ' + c.cant + ' — ' + c.nombre + ' (' + c.cli + ')\n';
       });
     });
   }
@@ -651,7 +662,6 @@ function consolidar(){
     const items = p.items || {};
     Object.keys(items).forEach(cod=>{
       const cant = items[cod].cantidad || 0;
-      const obs = items[cod].obs || '';
       const a = artInfo[cod] || {};
       if(!map[cod]){
         map[cod] = {
@@ -662,7 +672,7 @@ function consolidar(){
       }
       map[cod].total += cant;
       map[cod].ncli++;
-      map[cod].clientes.push({cli, nombre: p.nombreCliente || cli, cant, obs});
+      map[cod].clientes.push({cli, nombre: p.nombreCliente || cli, cant});
     });
   });
   Object.values(map).forEach(m=> m.clientes.sort((x,y)=> y.cant - x.cant));
@@ -794,10 +804,7 @@ function filaConsHTML(m){
   </tr>
   <tr class="det-row hidden" data-det="${esc(m.cod)}">
     <td colspan="5">
-      ${m.clientes.map(c=>{
-        const obsHtml = c.obs ? `<span class="det-obs">💬 ${esc(c.obs)}</span>` : '';
-        return `<span class="det-cli"><b>${c.cant}</b> ${esc(c.nombre)} <span class="cod">${esc(c.cli)}</span>${obsHtml}</span>`;
-      }).join('')}
+      ${m.clientes.map(c=>`<span class="det-cli"><b>${c.cant}</b> ${esc(c.nombre)} <span class="cod">${esc(c.cli)}</span></span>`).join('')}
     </td>
   </tr>`;
 }
@@ -847,12 +854,7 @@ function renderClientes(){
         <tr><th>Código</th><th>Artículo</th><th style="text-align:right">Cant.</th></tr>
         ${items.map(i=>{
           const it = p.items[i];
-          const obs = it.obs ? `<span class="art-obs">💬 ${esc(it.obs)}</span>` : '';
-          return `<tr>
-            <td class="cod">${esc(i)}</td>
-            <td><div class="art-cell"><span class="art-name">${esc(it.ARTICULO || i)}</span>${obs}</div></td>
-            <td class="num">${it.cantidad||0}</td>
-          </tr>`;
+          return `<tr><td class="cod">${esc(i)}</td><td>${esc(it.ARTICULO || i)}</td><td class="num">${it.cantidad||0}</td></tr>`;
         }).join('')}
       </table>
     </div>`;
@@ -904,8 +906,18 @@ function copiarConsolidado(){
 /* ============================================================
    9) EXPORTAR CSV
 ============================================================ */
+function delimitadorCSV(){
+  const sel = document.getElementById('csv-del');
+  const v = sel ? sel.value : ',';
+  return v === 'tab' ? '\t' : v;
+}
+function guardarDelimitador(){
+  try{ localStorage.setItem('csv_del', document.getElementById('csv-del').value); }catch(e){}
+}
+
 function exportCSV(){
   const q = qn();
+  const DEL = delimitadorCSV();
   let rows = [], nombre = '';
 
   if(tab === 'cons'){
@@ -922,22 +934,30 @@ function exportCSV(){
     cons.forEach(m=> rows.push([m.linea, m.cod, m.art, m.tipo, m.total, m.ncli]));
     nombre = 'consolidado_' + selFecha + '.csv';
   } else {
+    /* Formato de importación: 13 columnas fijas */
     let clis = Object.keys(data);
     if(q) clis = clis.filter(c=> norm((data[c].nombreCliente||'') + ' ' + c).includes(q));
     if(!clis.length){ toast('Nada que exportar'); return; }
-    rows.push(['JORNADA','CLIENTE','NOMBRE','CODART','ARTICULO','CANTIDAD','OBSERVACION','CONFIRMADO']);
+    rows.push(['CLIENTE','NOMBRE','LINEA','TIPO','PRODUCTO','PEDIDO','PESO','COMENTARIO','CODIGO PRODUCTO','NUMERO PEDIDO','FECHA','EJECUTIVO','PEDIDO ORIGINAL']);
     clis.forEach(c=>{
       const p = data[c];
       Object.keys(p.items || {}).forEach(i=>{
+        const a = artInfo[i] || {};
+        const cant = p.items[i].cantidad || 0;
         rows.push([
-          selFecha,
-          c,
-          p.nombreCliente||'',
-          i,
-          p.items[i].ARTICULO||'',
-          p.items[i].cantidad||0,
-          p.items[i].obs || '',
-          p.fecha||''
+          c,                                   /* CLIENTE (código) */
+          p.nombreCliente || '',               /* NOMBRE */
+          a.LINEA || '',                       /* LINEA (catálogo) */
+          a.TIPO || '',                        /* TIPO (catálogo) */
+          p.items[i].ARTICULO || a.ARTICULO || i, /* PRODUCTO */
+          cant,                                /* PEDIDO */
+          '',                                  /* PESO (vacío) */
+          p.items[i].obs || '',                /* COMENTARIO */
+          i,                                   /* CODIGO PRODUCTO */
+          1,                                   /* NUMERO PEDIDO (fijo) */
+          String(p.fecha || selFecha).replace(/,\s*/, ' '), /* FECHA guardado */
+          '',                                  /* EJECUTIVO (vacío) */
+          cant                                 /* PEDIDO ORIGINAL */
         ]);
       });
     });
@@ -946,15 +966,15 @@ function exportCSV(){
 
   const csv = '\uFEFF' + rows.map(r=>r.map(v=>{
     const s = String(v ?? '');
-    return /[";\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
-  }).join(';')).join('\r\n');
+    return (s.includes(DEL) || /["\n\r]/.test(s)) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(DEL)).join('\r\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = nombre;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  toast('📄 ' + nombre + ' exportado');
+  toast('📄 ' + nombre + ' exportado (' + (DEL === '\t' ? 'tabulación' : DEL === ',' ? 'coma' : DEL === ';' ? 'punto y coma' : 'pipe') + ')');
 }
 
 window.addEventListener('load', init);
