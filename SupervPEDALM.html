@@ -150,6 +150,11 @@ header button{background:rgba(255,255,255,.15);color:#fff;border:none;padding:8p
 .linea-head .ln-total{background:var(--tipo-bg);color:var(--tipo-txt);font-size:12.5px;font-weight:800;padding:3px 12px;border-radius:20px;flex-shrink:0}
 .linea-body{display:none;border-top:1px solid var(--border-soft)}
 .linea.open .linea-body{display:block}
+/* Consolidado: mismo tamaño de letra que por cliente + una sola línea por producto
+   (tabla con scroll horizontal; obs y códigos largos no parten la fila ni aumentan el alto) */
+.linea-body table{font-size:10.5px;width:max-content;min-width:100%}
+.linea-body td{font-size:10.5px;white-space:nowrap}
+.linea-body td .cod{font-size:10.5px}
 table{width:100%;border-collapse:collapse;font-size:13.5px}
 th{background:var(--tipo-bg);color:var(--tipo-txt);text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
 td{padding:9px 12px;border-top:1px solid var(--border-soft)}
@@ -159,7 +164,7 @@ td .tipo-tag{background:var(--blue-soft);color:var(--blue-txt);font-size:10.5px;
 tr.art-row{cursor:pointer}
 tr.art-row:hover{background:var(--panel-soft)}
 tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top:none}
-.det-cli{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:3px 0;flex-wrap:wrap}
+.det-cli{display:flex;gap:8px;align-items:baseline;font-size:10.5px;padding:3px 0;white-space:nowrap}
 .det-cli b{min-width:88px;color:var(--text)}
 .det-cli .cant{color:var(--green-text);font-weight:800}
 .det-cli .obs{color:var(--orange-text);font-style:italic}
@@ -592,7 +597,7 @@ function renderConsolidado(cons, q){
         '<span class="linea-meta">' + L.arts.length + ' art.</span>' +
         '<span class="ln-total">' + L.total + ' u.</span>' +
       '</button>' +
-      '<div class="linea-body"><table><thead><tr>' +
+      '<div class="linea-body"><div class="tbl-scroll"><table><thead><tr>' +
         '<th>Producto</th><th>Tipo</th><th class="num">Pedido</th><th class="num">Clientes</th>' +
       '</tr></thead><tbody>';
     L.arts.forEach(m=>{
@@ -614,7 +619,7 @@ function renderConsolidado(cons, q){
           }).join('') + '</td></tr>';
       }
     });
-    html += '</tbody></table></div></div>';
+    html += '</tbody></table></div></div></div>';
   });
   box.innerHTML = html;
 }
