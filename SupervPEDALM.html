@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supervisión de Pedidos — Grupo ORO</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+/* ============================================================
+   TEMA: variables (claro por defecto, body.dark = tema negro)
+============================================================ */
+:root{
+  --bg:#f0f2f5;
+  --panel:#ffffff;
+  --panel-soft:#f6f8f7;
+  --text:#22313f;
+  --text-soft:#7f8c8d;
+  --text-mute:#95a5a6;
+  --border:#e4e9ed;
+  --border-soft:#f0f3f5;
+  --border-input:#dde3e8;
+  --input-bg:#ffffff;
+  --green:#0e7c5a;
+  --green-text:#0e7c5a;
+  --green-soft:#eef4f1;
+  --green-border:#bcd9cd;
+  --tipo-bg:#f4f7f5;
+  --tipo-txt:#0e7c5a;
+  --linea-open:#eef6f2;
+  --orange:#f39c12;
+  --orange-text:#b9770e;
+  --orange-soft:#fff3dd;
+  --orange-border:#f0d9a8;
+  --orange-col:#fdf1dc;
+  --orange-col-txt:#b9770e;
+  --orange-col-sub:#caa04a;
+  --blue-txt:#1a4f8a;
+  --blue-soft:#e8f0fe;
+  --red:#c0392b;
+  --red-text:#e74c3c;
+  --red-soft:#fdecea;
+  --red-border:#f5c6c0;
+  --vacio-txt:#b0bec5;
+  --vacio-soft:#f0f3f4;
+  --toast-bg:#22313f;
+  --toast-txt:#ffffff;
+  --login-grad1:#C8102E;
+  --login-grad2:#8f0b20;
+  --shadow:0 20px 50px rgba(0,0,0,.25);
+}
+body.dark{
+  --bg:#12181f;
+  --panel:#1a222c;
+  --panel-soft:#202b37;
+  --text:#e8eef4;
+  --text-soft:#9aabb8;
+  --text-mute:#7c8b98;
+  --border:#2b3644;
+  --border-soft:#243040;
+  --border-input:#3a4a5e;
+  --input-bg:#141c26;
+  --green:#12996d;
+  --green-text:#2ec894;
+  --green-soft:rgba(18,162,115,.16);
+  --green-border:#1f5c46;
+  --tipo-bg:#1d2b27;
+  --tipo-txt:#2ec894;
+  --linea-open:#16241f;
+  --orange-text:#e6a23c;
+  --orange-soft:rgba(243,156,18,.12);
+  --orange-border:#5c4416;
+  --orange-col:#2a2418;
+  --orange-col-txt:#e6a23c;
+  --orange-col-sub:#caa04a;
+  --blue-txt:#6fa8dc;
+  --blue-soft:rgba(66,133,244,.14);
+  --red-text:#ff6b5e;
+  --red-soft:rgba(231,76,60,.14);
+  --red-border:#6e2a23;
+  --vacio-txt:#5d6e7e;
+  --vacio-soft:#1c2531;
+  --toast-bg:#e8eef4;
+  --toast-txt:#22313f;
+  --login-grad1:#7a0c1d;
+  --login-grad2:#4a0712;
+  --shadow:0 20px 50px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+.hidden{display:none!important}
+
+/* ====== LOGIN ====== */
+#login{position:fixed;inset:0;background:linear-gradient(135deg,var(--login-grad1),var(--login-grad2));display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}
+.login-box{background:var(--panel);border-radius:20px;padding:34px 30px;width:100%;max-width:360px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:12px}
+.login-logo{text-align:center;font-size:34px;margin-bottom:2px}
+.login-box h1{text-align:center;font-size:19px;color:var(--text)}
+.login-box .sub{text-align:center;font-size:12.5px;color:var(--text-soft);margin-bottom:8px}
+.login-box input{width:100%;padding:13px 16px;border:2px solid var(--border-input);border-radius:12px;background:var(--input-bg);color:var(--text);font-size:15px}
+.login-box input:focus{outline:none;border-color:var(--green)}
+.login-remember{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-soft);cursor:pointer}
+.ingresar{background:linear-gradient(135deg,var(--login-grad1),var(--login-grad2));color:#fff;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:1px;margin-top:6px}
+#login-error{color:var(--red-text);font-size:13px;text-align:center;min-height:18px}
+.tg-mini{background:var(--panel-soft);border:1px solid var(--border);color:var(--text-soft);padding:9px;border-radius:10px;font-size:13px;margin-top:4px}
+.login-only{font-size:11px;color:var(--text-mute);text-align:center;margin-top:6px}
+
+/* ====== HEADER APP ====== */
+header{background:linear-gradient(135deg,var(--login-grad1),var(--login-grad2));color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+header .client{display:flex;align-items:center;gap:10px;min-width:0}
+header .c-info strong{display:block;font-size:16px}
+header .c-info small{opacity:.85;font-size:12px}
+.only-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:800;letter-spacing:.6px;margin-top:3px;display:inline-block}
+.header-btns{display:flex;gap:8px;align-items:center}
+header button{background:rgba(255,255,255,.15);color:#fff;border:none;padding:8px 12px;font-size:13px;border-radius:8px}
+#fecha-sel{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);padding:8px 10px;border-radius:8px;font-size:13px;font-weight:600;max-width:230px}
+#fecha-sel option{color:#22313f;background:#fff}
+
+/* ====== CONTENIDO ====== */
+.container{max-width:1200px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.stat b{display:block;font-size:22px;color:var(--green-text)}
+.stat span{font-size:11.5px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.4px}
+.stat.aten b{color:var(--orange-text)}
+.stat.warn b{color:var(--red-text)}
+
+.toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.tab{background:var(--panel);border:1px solid var(--border);color:var(--text-soft);padding:9px 16px;font-size:13.5px;font-weight:700;border-radius:9px}
+.tab.act{background:var(--green);color:#fff;border-color:var(--green)}
+#search{flex:1;min-width:180px;padding:10px 14px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-size:14px}
+#search:focus{outline:none;border-color:var(--green)}
+
+.sin-pedido{background:var(--orange-soft);border:1px solid var(--orange-border);color:var(--orange-text);border-radius:12px;padding:11px 14px;font-size:13.5px;margin-bottom:14px;cursor:pointer}
+.sin-pedido b{font-weight:800}
+.sin-detalle{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:14px;font-size:13.5px}
+.sin-detalle ul{margin:6px 0 0 18px}
+.sin-detalle li{margin-bottom:4px;color:var(--text-soft)}
+.sin-detalle li b{color:var(--text)}
+
+/* ====== CONSOLIDADO (líneas acordeón) ====== */
+.linea{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.linea-head{width:100%;background:none;border:none;display:flex;align-items:center;gap:10px;padding:12px 14px;text-align:left}
+.linea-head:hover{background:var(--linea-open)}
+.linea-head .arrow{color:var(--text-mute);font-size:12px;width:14px;flex-shrink:0}
+.linea.open .arrow{transform:rotate(90deg)}
+.linea-head .ln-name{font-weight:800;font-size:14px;color:var(--green-text);flex:1;min-width:0}
+.linea-head .linea-meta{font-size:11.5px;color:var(--text-mute);font-weight:600;flex-shrink:0}
+.linea-head .ln-total{background:var(--tipo-bg);color:var(--tipo-txt);font-size:12.5px;font-weight:800;padding:3px 12px;border-radius:20px;flex-shrink:0}
+.linea-body{display:none;border-top:1px solid var(--border-soft)}
+.linea.open .linea-body{display:block}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{background:var(--tipo-bg);color:var(--tipo-txt);text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:9px 12px;border-top:1px solid var(--border-soft)}
+td.num,th.num{text-align:right;white-space:nowrap}
+td .cod{font-family:monospace;font-size:12px;color:var(--text-mute)}
+td .tipo-tag{background:var(--blue-soft);color:var(--blue-txt);font-size:10.5px;padding:2px 8px;border-radius:12px;font-weight:700;white-space:nowrap}
+tr.art-row{cursor:pointer}
+tr.art-row:hover{background:var(--panel-soft)}
+tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top:none}
+.det-cli{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:3px 0;flex-wrap:wrap}
+.det-cli b{min-width:88px;color:var(--text)}
+.det-cli .cant{color:var(--green-text);font-weight:800}
+.det-cli .obs{color:var(--orange-text);font-style:italic}
+.det-cli .nada{color:var(--vacio-txt)}
+.empty-msg{color:var(--text-mute);font-size:13.5px;padding:16px;text-align:center}
+
+/* ====== POR CLIENTE ====== */
+.cli-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.cli-head{width:100%;background:none;border:none;display:flex;align-items:center;gap:10px;padding:12px 14px;text-align:left;color:var(--text)}
+.cli-head:hover{background:var(--panel-soft)}
+.cli-head .arrow{color:var(--text-mute);font-size:12px;width:14px;flex-shrink:0}
+.cli-head .nom{font-weight:800;font-size:14px;flex:1;min-width:0}
+.cli-head .cod{font-family:monospace;font-size:11.5px;color:var(--text-mute)}
+.cli-head .meta{font-size:11px;color:var(--text-soft);text-align:right;flex-shrink:0}
+.cli-head .pill{background:var(--tipo-bg);color:var(--tipo-txt);font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:20px;flex-shrink:0}
+.cli-card.sin .cli-head{opacity:.55;cursor:default}
+.cli-card.sin .cli-head .pill{background:var(--vacio-soft);color:var(--vacio-txt)}
+.cli-card.actualizado .cli-head .meta .h{color:var(--blue-txt);font-weight:700}
+.cli-body{display:none;border-top:1px solid var(--border-soft)}
+.cli-card.open .cli-body{display:block}
+.obs-inline{color:var(--orange-text);font-style:italic;font-size:12px}
+.cli-foot{padding:9px 14px;font-size:12px;color:var(--text-soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel-soft)}
+
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-txt);padding:12px 22px;border-radius:30px;font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
+.cod{font-family:monospace;font-size:12px;color:var(--text-mute)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-logo">🛡️</div>
+    <h1>Supervisión de Pedidos</h1>
+    <p class="sub">Grupo ORO — acceso restringido a supervisores</p>
+    <input id="sup-input" placeholder="Usuario supervisor" autocomplete="off" maxlength="20">
+    <input id="sup-pass" type="password" placeholder="Contraseña" autocomplete="off" maxlength="20">
+    <label class="login-remember">
+      <input type="checkbox" id="remember-sup">
+      Recordar usuario en este dispositivo
+    </label>
+    <button class="ingresar" onclick="loginSup()">INGRESAR</button>
+    <p id="login-error"></p>
+    <button class="tg-mini" onclick="toggleTema()"><span class="tg-icon">🌙</span> <span class="tg-text">Modo oscuro</span></button>
+    <p class="login-only">👁 Modo consulta: este panel no modifica ni exporta información</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" class="hidden">
+  <header>
+    <div class="client">
+      <div class="c-info">
+        <strong id="sup-name">—</strong>
+        <small id="sup-scope">—</small>
+        <span class="only-badge">👁 SOLO CONSULTA</span>
+      </div>
+    </div>
+    <div class="header-btns">
+      <select id="fecha-sel" onchange="cambiarFecha()"></select>
+      <button onclick="toggleTema()" title="Cambiar tema"><span class="tg-icon">🌙</span></button>
+      <button onclick="logoutSup()">Salir</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats">
+      <div class="stat"><b id="s-aut">0</b><span>Clientes autorizados</span></div>
+      <div class="stat"><b id="s-con">0</b><span>Con pedido</span></div>
+      <div class="stat warn"><b id="s-sin">0</b><span>Sin pedido</span></div>
+      <div class="stat aten"><b id="s-uni">0</b><span>Unidades pedidas</span></div>
+      <div class="stat"><b id="s-art">0</b><span>Artículos distintos</span></div>
+      <div class="stat"><b id="s-ult">—</b><span>Último guardado</span></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
+      <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
+      <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
+    </div>
+
+    <div id="sin-pedido"></div>
+    <div id="sin-detalle" class="sin-detalle hidden"></div>
+
+    <div id="sec-cons"></div>
+    <div id="sec-cli" class="hidden"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   1) CONFIGURACIÓN
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBVXEj_H5haEq2p-Z3v8twAsJFvflmMfWA",
+  authDomain: "pedalm-c8d01.firebaseapp.com",
+  databaseURL: "https://pedalm-c8d01-default-rtdb.firebaseio.com",
+  projectId: "pedalm-c8d01",
+  storageBucket: "pedalm-c8d01.firebasestorage.app",
+  messagingSenderId: "92085221518",
+  appId: "1:92085221518:web:db121cc0cdc4f95b6631df",
+  measurementId: "G-TWW8C1GXQZ"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+const HORA_CORTE = null;
+/* Jornada de fin de semana: sábado y domingo comparten la fecha del DOMINGO.
+   El lunes arranca pedido nuevo con su propia fecha. (Igual que app y monitor) */
+const FINDE_DOMINGO = true;
+
+/* ============================================================
+   2) ESTADO (solo lectura — nunca se escribe en la BD)
+============================================================ */
+let SUP = { usu:'', clientes:[], clientesSet:null };
+let artInfo = {};        /* catálogo: CODART → {ARTICULO, TIPO, LINEA} */
+let clientesReg = {};    /* registro: CODCLIENTE → {CLIENTE: nombre} */
+let data = {};           /* pedidos de la jornada visible (solo autorizados) */
+let selFecha = '';
+let tab = 'cons';
+let refPedidos = null;
+let clavesPrevias = null;
+const lineasAbiertas = new Set();
+const artsAbiertos = new Set();
+const clisAbiertos = new Set();
+
+/* ============================================================
+   3) HELPERS
+============================================================ */
+function calcularJornada(){
+  const d = new Date();
+  if(HORA_CORTE !== null && d.getHours() >= HORA_CORTE) d.setDate(d.getDate() + 1);
+  /* Fin de semana: sábado y domingo → jornada del domingo; lunes → pedido nuevo */
+  if(FINDE_DOMINGO && d.getDay() === 6) d.setDate(d.getDate() + 1);
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+function formatearFecha(iso){
+  const [y,m,d] = iso.split('-');
+  const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const dt = new Date(+y, +m-1, +d);
+  return DIAS[dt.getDay()] + ' ' + (+d) + ' ' + MES[+m-1] + ' ' + y;
+}
+function norm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  })[c]);
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = 1;
+  clearTimeout(t._h);
+  t._h = setTimeout(()=> t.style.opacity = 0, 2600);
+}
+function aplicarTema(t){
+  document.body.classList.toggle('dark', t === 'dark');
+  try{ localStorage.setItem('tema', t); }catch(e){}
+  document.querySelectorAll('.tg-icon').forEach(el=> el.textContent = (t === 'dark') ? '☀️' : '🌙');
+  document.querySelectorAll('.tg-text').forEach(el=> el.textContent = (t === 'dark') ? 'Modo claro' : 'Modo oscuro');
+}
+function toggleTema(){
+  aplicarTema(document.body.classList.contains('dark') ? 'light' : 'dark');
+}
+aplicarTema((function(){ try{ return localStorage.getItem('tema') || 'light'; }catch(e){ return 'light'; } })());
+
+/* ============================================================
+   4) LOGIN DE SUPERVISOR  (lectura: PEDIDOS/Superv/{usuario})
+============================================================ */
+async function loginSup(){
+  const inpUsu = document.getElementById('sup-input');
+  const inpPas = document.getElementById('sup-pass');
+  const err = document.getElementById('login-error');
+  const usu = inpUsu.value.trim();
+  const pas = inpPas.value.trim();
+  err.textContent = '';
+  if(!usu || !pas){ err.textContent = 'Escriba usuario y contraseña'; return; }
+
+  let sup = null;
+  try{
+    const s = await db.ref('PEDIDOS/Superv/' + usu).once('value');
+    sup = s.val();
+  }catch(e){
+    err.textContent = 'Error de conexión: ' + e.message;
+    return;
+  }
+  if(!sup){ err.textContent = 'Supervisor no encontrado'; return; }
+  if(String(sup.Contraseña || '').trim() !== pas){ err.textContent = 'Contraseña incorrecta'; return; }
+
+  const lista = sup.Clientes || {};
+  const clientes = Object.keys(lista).filter(c => lista[c]);
+  if(!clientes.length){ err.textContent = 'El supervisor no tiene clientes asignados'; return; }
+
+  try{
+    if(document.getElementById('remember-sup').checked) localStorage.setItem('sup_usu', usu);
+    else localStorage.removeItem('sup_usu');
+    sessionStorage.setItem('sup_ok', usu);
+  }catch(e){}
+
+  inpPas.value = '';
+  arrancar(usu, clientes);
+}
+
+function logoutSup(){
+  try{ sessionStorage.removeItem('sup_ok'); }catch(e){}
+  location.reload();
+}
+
+/* Arranque de la sesión ya autenticada */
+function arrancar(usu, clientes){
+  SUP.usu = usu;
+  SUP.clientes = clientes.slice().sort();
+  SUP.clientesSet = new Set(SUP.clientes);
+
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('sup-name').textContent = '👤 Supervisor ' + usu.toUpperCase();
+  document.getElementById('sup-scope').textContent = SUP.clientes.length + ' clientes asignados';
+
+  selFecha = calcularJornada();
+  cargarDatosBase();
+}
+
+/* Catálogo y registro de clientes (solo lectura) */
+async function cargarDatosBase(){
+  try{
+    const [sArt, sCli] = await Promise.all([
+      db.ref('PEDIDOS/Articulos').once('value'),
+      db.ref('PEDIDOS/Clientes').once('value')
+    ]);
+    artInfo = sArt.val() || {};
+    clientesReg = sCli.val() || {};
+  }catch(e){ console.error(e); }
+  armarFechas();
+  escuchar(selFecha);
+}
+/* ============================================================
+   5) FECHAS Y ESCUCHA DE PEDIDOS (solo lectura)
+============================================================ */
+async function armarFechas(){
+  const sel = document.getElementById('fecha-sel');
+  let fechas = [];
+  try{
+    const r = await fetch(firebaseConfig.databaseURL + '/PEDIDOS/Pedidos.json?shallow=true');
+    const j = await r.json();
+    fechas = j ? Object.keys(j) : [];
+  }catch(e){}
+  fechas = fechas.filter(f=>/^\d{4}-\d{2}-\d{2}$/.test(f));
+  if(fechas.indexOf(selFecha) === -1) fechas.push(selFecha);
+  fechas.sort().reverse();
+  sel.innerHTML = fechas.map(f=>
+    `<option value="${f}" ${f===selFecha?'selected':''}>${f===selFecha?'📍 ':''}${f} — ${esc(formatearFecha(f))}</option>`
+  ).join('');
+}
+
+function cambiarFecha(){
+  selFecha = document.getElementById('fecha-sel').value;
+  clavesPrevias = null;
+  lineasAbiertas.clear(); artsAbiertos.clear(); clisAbiertos.clear();
+  escuchar(selFecha);
+}
+
+function escuchar(fecha){
+  if(refPedidos){ refPedidos.off(); refPedidos = null; }
+  document.getElementById('sec-cons').innerHTML = '<p class="empty-msg">Cargando pedidos…</p>';
+  document.getElementById('sec-cli').innerHTML = '';
+  refPedidos = db.ref('PEDIDOS/Pedidos/' + fecha);
+  refPedidos.on('value', s=>{
+    const todo = s.val() || {};
+    /* Solo los clientes autorizados para este supervisor */
+    const filtrado = {};
+    SUP.clientes.forEach(c=>{ if(todo[c]) filtrado[c] = todo[c]; });
+
+    /* Aviso en vivo de pedidos nuevos */
+    if(clavesPrevias){
+      Object.keys(filtrado).forEach(c=>{
+        if(!clavesPrevias.has(c)) toast('📥 Nuevo pedido: ' + (filtrado[c].nombreCliente || c));
+      });
+    }
+    clavesPrevias = new Set(Object.keys(filtrado));
+
+    data = filtrado;
+    render();
+  }, err=>{
+    document.getElementById('sec-cons').innerHTML =
+      '<p class="empty-msg">Error al leer pedidos: ' + esc(err.message) + '</p>';
+  });
+}
+
+/* ============================================================
+   6) CONSOLIDADO (solo clientes autorizados)
+============================================================ */
+function consolidar(){
+  const map = {};
+  Object.keys(data).forEach(cli=>{
+    const p = data[cli];
+    const items = p.items || {};
+    Object.keys(items).forEach(cod=>{
+      const cant = items[cod].cantidad || 0;
+      const a = artInfo[cod] || {};
+      if(!map[cod]){
+        map[cod] = {
+          cod, art: items[cod].ARTICULO || a.ARTICULO || cod,
+          linea: a.LINEA || '(SIN LÍNEA)', tipo: a.TIPO || '',
+          total: 0, ncli: 0, clientes: []
+        };
+      }
+      map[cod].total += cant;
+      map[cod].ncli++;
+      map[cod].clientes.push({cli, nombre: p.nombreCliente || cli, cant, obs: items[cod].obs || ''});
+    });
+  });
+  Object.values(map).forEach(m=> m.clientes.sort((x,y)=> y.cant - x.cant));
+  return Object.values(map);
+}
+
+function qn(){ return norm(document.getElementById('search').value.trim()); }
+
+function setTab(t){
+  tab = t;
+  document.getElementById('tab-cons').classList.toggle('act', t==='cons');
+  document.getElementById('tab-cli').classList.toggle('act', t==='cli');
+  document.getElementById('sec-cons').classList.toggle('hidden', t!=='cons');
+  document.getElementById('sec-cli').classList.toggle('hidden', t!=='cli');
+  render();
+}
+
+/* ============================================================
+   7) RENDER
+============================================================ */
+function render(){
+  const cons = consolidar();
+  const conPedido = Object.keys(data).length;
+  const sinPedido = SUP.clientes.filter(c=>!data[c]);
+  const unidades = cons.reduce((s,m)=>s+m.total,0);
+  const q = qn();
+
+  document.getElementById('s-aut').textContent = SUP.clientes.length;
+  document.getElementById('s-con').textContent = conPedido;
+  document.getElementById('s-sin').textContent = sinPedido.length;
+  document.getElementById('s-uni').textContent = unidades;
+  document.getElementById('s-art').textContent = cons.length;
+  let ultTs = 0;
+  Object.keys(data).forEach(c=>{ if((data[c].ts||0) > ultTs) ultTs = data[c].ts||0; });
+  document.getElementById('s-ult').textContent = ultTs
+    ? new Date(ultTs).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '—';
+
+  /* Banner + detalle de clientes sin pedido */
+  const sp = document.getElementById('sin-pedido');
+  const sd = document.getElementById('sin-detalle');
+  if(sinPedido.length){
+    sp.style.display = '';
+    sp.innerHTML = '⏳ <b>' + sinPedido.length + ' cliente(s) sin pedido</b> — clic para ver quiénes';
+    sd.classList.add('hidden');
+    sp.onclick = ()=>{
+      sd.classList.toggle('hidden');
+      if(!sd.classList.contains('hidden')){
+        sd.innerHTML = '<b>Clientes sin pedido (' + sinPedido.length + '):</b><ul>' +
+          sinPedido.map(c=> '<li><b>' + esc(nombreDe(c)) + '</b> <span class="cod">(' + esc(c) + ')</span></li>').join('') +
+          '</ul>';
+      }
+    };
+  } else if(SUP.clientes.length){
+    sp.style.display = '';
+    sp.innerHTML = '🎉 <b>Todos los clientes asignados pidieron</b>';
+    sp.onclick = null;
+    sd.classList.add('hidden');
+  } else {
+    sp.style.display = 'none';
+  }
+
+  renderConsolidado(cons, q);
+  renderClientes(q);
+}
+
+function nombreDe(c){
+  if(data[c] && data[c].nombreCliente) return data[c].nombreCliente;
+  if(clientesReg[c] && clientesReg[c].CLIENTE) return clientesReg[c].CLIENTE;
+  return c;
+}
+
+function renderConsolidado(cons, q){
+  const box = document.getElementById('sec-cons');
+  const vis = cons.filter(m=> !q || norm(m.art + ' ' + m.cod + ' ' + m.linea + ' ' + m.tipo).includes(q));
+
+  if(!vis.length){
+    box.innerHTML = '<p class="empty-msg">' +
+      (q ? 'Ningún artículo coincide con el filtro' : 'Sin pedidos cargados para esta jornada') + '</p>';
+    return;
+  }
+
+  const porLinea = {};
+  vis.forEach(m=>{
+    if(!porLinea[m.linea]) porLinea[m.linea] = {arts:[], total:0};
+    porLinea[m.linea].arts.push(m);
+    porLinea[m.linea].total += m.total;
+  });
+  const lineas = Object.keys(porLinea).sort((a,b)=> a.localeCompare(b));
+
+  let html = '';
+  lineas.forEach(lin=>{
+    const L = porLinea[lin];
+    const abierta = lineasAbiertas.has(lin);
+    L.arts.sort((a,b)=>
+      String(a.tipo||'').localeCompare(String(b.tipo||'')) ||
+      String(a.art).localeCompare(String(b.art)));
+    html += '<div class="linea' + (abierta?' open':'') + '">' +
+      '<button class="linea-head" onclick="toggleLinea(decodeURIComponent(\'' + encodeURIComponent(lin) + '\'))">' +
+        '<span class="arrow">▶</span>' +
+        '<span class="ln-name">' + esc(lin) + '</span>' +
+        '<span class="linea-meta">' + L.arts.length + ' art.</span>' +
+        '<span class="ln-total">' + L.total + ' u.</span>' +
+      '</button>' +
+      '<div class="linea-body"><table><thead><tr>' +
+        '<th>Producto</th><th>Tipo</th><th class="num">Pedido</th><th class="num">Clientes</th>' +
+      '</tr></thead><tbody>';
+    L.arts.forEach(m=>{
+      const abierto = artsAbiertos.has(m.cod);
+      html += '<tr class="art-row" onclick="toggleArt(decodeURIComponent(\'' + encodeURIComponent(m.cod) + '\'))">' +
+        '<td>' + esc(m.art) + ' <span class="cod">(' + esc(m.cod) + ')</span></td>' +
+        '<td>' + (m.tipo ? '<span class="tipo-tag">' + esc(m.tipo) + '</span>' : '') + '</td>' +
+        '<td class="num"><b>' + m.total + '</b></td>' +
+        '<td class="num">' + m.ncli + '</td>' +
+      '</tr>';
+      if(abierto){
+        html += '<tr class="det-row"><td colspan="4">' +
+          m.clientes.map(cl=>{
+            let s = '<div class="det-cli"><b>' + esc(cl.nombre) + '</b>' +
+              '<span class="cant">' + cl.cant + '</span>' +
+              '<span class="cod">(' + esc(cl.cli) + ')</span>';
+            s += cl.obs ? '<span class="obs">💬 ' + esc(cl.obs) + '</span>' : '<span class="nada">sin obs.</span>';
+            return s + '</div>';
+          }).join('') + '</td></tr>';
+      }
+    });
+    html += '</tbody></table></div></div>';
+  });
+  box.innerHTML = html;
+}
+
+function toggleLinea(lin){
+  if(lineasAbiertas.has(lin)) lineasAbiertas.delete(lin);
+  else lineasAbiertas.add(lin);
+  render();
+}
+function toggleArt(cod){
+  if(artsAbiertos.has(cod)) artsAbiertos.delete(cod);
+  else artsAbiertos.add(cod);
+  render();
+}
+function toggleCli(c){
+  if(!data[c]) return;
+  if(clisAbiertos.has(c)) clisAbiertos.delete(c);
+  else clisAbiertos.add(c);
+  render();
+}
+
+function renderClientes(q){
+  const box = document.getElementById('sec-cli');
+  let clis = SUP.clientes.slice();
+  if(q) clis = clis.filter(c=>
+    norm(nombreDe(c) + ' ' + c + ' ' + Object.values(data[c]?.items||{}).map(i=>i.ARTICULO||'').join(' ')).includes(q));
+  clis.sort((a,b)=> nombreDe(a).localeCompare(nombreDe(b)));
+
+  if(!clis.length){
+    box.innerHTML = '<p class="empty-msg">' + (q ? 'Ningún cliente coincide con el filtro' : 'Sin clientes asignados') + '</p>';
+    return;
+  }
+
+  let html = '';
+  clis.forEach(c=>{
+    const p = data[c];
+    const abierto = p && clisAbiertos.has(c);
+    if(!p){
+      html += '<div class="cli-card sin">' +
+        '<div class="cli-head"><span class="arrow">—</span>' +
+        '<span class="nom">' + esc(nombreDe(c)) + '</span>' +
+        '<span class="cod">' + esc(c) + '</span>' +
+        '<span class="pill">Sin pedido</span></div></div>';
+      return;
+    }
+    const items = p.items || {};
+    const cods = Object.keys(items).sort((a,b)=>
+      String(items[a].ARTICULO||a).localeCompare(String(items[b].ARTICULO||b)));
+    const unidades = cods.reduce((s,i)=>s+(items[i].cantidad||0),0);
+    const hora = p.ts ? new Date(p.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '';
+    html += '<div class="cli-card' + (abierto?' open':'') + (p.jornada && p.jornada !== selFecha ? ' actualizado':'') + '">' +
+      '<button class="cli-head" onclick="toggleCli(decodeURIComponent(\'' + encodeURIComponent(c) + '\'))">' +
+        '<span class="arrow">▶</span>' +
+        '<span class="nom">' + esc(nombreDe(c)) + '</span>' +
+        '<span class="cod">' + esc(c) + '</span>' +
+        '<span class="meta"><span class="h">🕒 ' + (p.fecha ? esc(String(p.fecha).replace(/,\s*/,' ')) : hora) + '</span></span>' +
+        '<span class="pill">' + cods.length + ' art · ' + unidades + ' u.</span>' +
+      '</button>' +
+      '<div class="cli-body"><table><thead><tr>' +
+        '<th class="num">Cant.</th><th>Producto</th><th>Tipo</th><th>Observación</th>' +
+      '</tr></thead><tbody>';
+    cods.forEach(i=>{
+      const a = artInfo[i] || {};
+      const obs = items[i].obs || '';
+      html += '<tr>' +
+        '<td class="num"><b>' + (items[i].cantidad||0) + '</b></td>' +
+        '<td>' + esc(items[i].ARTICULO || a.ARTICULO || i) + ' <span class="cod">(' + esc(i) + ')</span></td>' +
+        '<td>' + (a.TIPO ? '<span class="tipo-tag">' + esc(a.TIPO) + '</span>' : '') + '</td>' +
+        '<td>' + (obs ? '<span class="obs-inline">💬 ' + esc(obs) + '</span>' : '') + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>' +
+      '<div class="cli-foot"><span>📅 Jornada del pedido: ' + esc(p.jornada || selFecha) + '</span>' +
+      '<span>🧾 Guardado: ' + esc(p.fecha || '—') + '</span></div></div></div>';
+  });
+  box.innerHTML = html;
+}
+
+/* ============================================================
+   8) INICIO — autologin si la sesión sigue abierta
+============================================================ */
+(async function(){
+  let usu = null;
+  try{ usu = sessionStorage.getItem('sup_ok'); }catch(e){}
+  if(!usu){ return; }
+  try{
+    const s = await db.ref('PEDIDOS/Superv/' + usu).once('value');
+    const sup = s.val();
+    if(!sup) return;
+    const lista = sup.Clientes || {};
+    const clientes = Object.keys(lista).filter(c=> lista[c]);
+    if(!clientes.length) return;
+    arrancar(usu, clientes);
+  }catch(e){ console.error(e); }
+})();
+
+document.getElementById('sup-pass').addEventListener('keydown', e=>{ if(e.key === 'Enter') loginSup(); });
+document.getElementById('sup-input').addEventListener('keydown', e=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('sup-pass').focus(); }
+});
+try{
+  const guar = localStorage.getItem('sup_usu');
+  if(guar){
+    document.getElementById('sup-input').value = guar;
+    document.getElementById('remember-sup').checked = true;
+    document.getElementById('sup-pass').focus();
+  }
+}catch(e){}
+</script>
+</body>
+</html>
