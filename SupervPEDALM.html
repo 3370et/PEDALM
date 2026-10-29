@@ -598,14 +598,14 @@ function renderConsolidado(cons, q){
         '<span class="ln-total">' + L.total + ' u.</span>' +
       '</button>' +
       '<div class="linea-body"><div class="tbl-scroll"><table><thead><tr>' +
-        '<th>Producto</th><th>Tipo</th><th class="num">Pedido</th><th class="num">Clientes</th>' +
+        '<th class="num">Pedido</th><th>Producto</th><th>Tipo</th><th class="num">Clientes</th>' +
       '</tr></thead><tbody>';
     L.arts.forEach(m=>{
       const abierto = artsAbiertos.has(m.cod);
       html += '<tr class="art-row" onclick="toggleArt(decodeURIComponent(\'' + encodeURIComponent(m.cod) + '\'))">' +
+        '<td class="num"><b>' + m.total + '</b></td>' +
         '<td>' + esc(m.art) + ' <span class="cod">(' + esc(m.cod) + ')</span></td>' +
         '<td>' + (m.tipo ? '<span class="tipo-tag">' + esc(m.tipo) + '</span>' : '') + '</td>' +
-        '<td class="num"><b>' + m.total + '</b></td>' +
         '<td class="num">' + m.ncli + '</td>' +
       '</tr>';
       if(abierto){
