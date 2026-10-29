@@ -581,9 +581,10 @@ function renderConsolidado(cons, q){
   lineas.forEach(lin=>{
     const L = porLinea[lin];
     const abierta = lineasAbiertas.has(lin);
+    /* Tipo se mantiene como primer criterio; dentro del tipo, orden por código de producto */
     L.arts.sort((a,b)=>
       String(a.tipo||'').localeCompare(String(b.tipo||'')) ||
-      String(a.art).localeCompare(String(b.art)));
+      String(a.cod).localeCompare(String(b.cod), 'es', {numeric:true}));
     html += '<div class="linea' + (abierta?' open':'') + '">' +
       '<button class="linea-head" onclick="toggleLinea(decodeURIComponent(\'' + encodeURIComponent(lin) + '\'))">' +
         '<span class="arrow">▶</span>' +
@@ -660,8 +661,9 @@ function renderClientes(q){
       return;
     }
     const items = p.items || {};
+    /* Orden por código de producto (clave del item); numeric:true → ART2 antes que ART10 */
     const cods = Object.keys(items).sort((a,b)=>
-      String(items[a].ARTICULO||a).localeCompare(String(items[b].ARTICULO||b)));
+      String(a).localeCompare(String(b), 'es', {numeric:true}));
     const unidades = cods.reduce((s,i)=>s+(items[i].cantidad||0),0);
     const hora = p.ts ? new Date(p.ts).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) : '';
     html += '<div class="cli-card' + (abierto?' open':'') + (p.jornada && p.jornada !== selFecha ? ' actualizado':'') + '">' +
