@@ -191,8 +191,9 @@ tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top
 .cli-body th,.cli-body td{white-space:nowrap}
 /* Cant.: espacio justo para 4 dígitos (no hay cantidades mayores) */
 .cli-body th.num,.cli-body td.num{width:44px;min-width:44px;max-width:44px}
-/* Producto: columna duplicada — nombre + código siempre en una sola línea */
+/* Producto: columna duplicada — nombre + código + observación en una sola línea (sin columna exclusiva de obs) */
 .cli-body th:nth-child(2),.cli-body td:nth-child(2){min-width:320px}
+/* Obs en línea tras el código: cursiva naranja, mismo tamaño que el resto de la tabla */
 .obs-inline{color:var(--orange-text);font-style:italic;font-size:12px}
 .cli-foot{padding:9px 14px;font-size:12px;color:var(--text-soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel-soft)}
 
@@ -672,16 +673,16 @@ function renderClientes(q){
         '<span class="pill">' + cods.length + ' art · ' + unidades + ' u.</span>' +
       '</button>' +
       '<div class="cli-body"><div class="tbl-scroll"><table><thead><tr>' +
-        '<th class="num">Cant.</th><th>Producto</th><th>Tipo</th><th>Observación</th>' +
+        '<th class="num">Cant.</th><th>Producto</th><th>Tipo</th>' +
       '</tr></thead><tbody>';
     cods.forEach(i=>{
       const a = artInfo[i] || {};
       const obs = items[i].obs || '';
       html += '<tr>' +
         '<td class="num"><b>' + (items[i].cantidad||0) + '</b></td>' +
-        '<td>' + esc(items[i].ARTICULO || a.ARTICULO || i) + ' <span class="cod">(' + esc(i) + ')</span></td>' +
+        '<td>' + esc(items[i].ARTICULO || a.ARTICULO || i) + ' <span class="cod">(' + esc(i) + ')</span>' +
+          (obs ? ' <span class="obs-inline">💬 ' + esc(obs) + '</span>' : '') + '</td>' +
         '<td>' + (a.TIPO ? '<span class="tipo-tag">' + esc(a.TIPO) + '</span>' : '') + '</td>' +
-        '<td>' + (obs ? '<span class="obs-inline">💬 ' + esc(obs) + '</span>' : '') + '</td>' +
       '</tr>';
     });
     html += '</tbody></table></div>' +
