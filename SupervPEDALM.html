@@ -185,6 +185,14 @@ tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top
 .cli-body td{font-size:10.5px}
 .cli-body .cod{font-family:monospace;font-size:10.5px;color:var(--text-mute)}
 .cli-body .obs-inline{color:var(--orange-text);font-style:italic;font-size:10.5px}
+/* Una sola línea por producto: tabla con scroll horizontal (la obs no aumenta el alto) */
+.tbl-scroll{overflow-x:auto}
+.cli-body table{width:max-content;min-width:100%}
+.cli-body th,.cli-body td{white-space:nowrap}
+/* Cant.: espacio justo para 4 dígitos (no hay cantidades mayores) */
+.cli-body th.num,.cli-body td.num{width:44px;min-width:44px;max-width:44px}
+/* Producto: columna duplicada — nombre + código siempre en una sola línea */
+.cli-body th:nth-child(2),.cli-body td:nth-child(2){min-width:320px}
 .obs-inline{color:var(--orange-text);font-style:italic;font-size:12px}
 .cli-foot{padding:9px 14px;font-size:12px;color:var(--text-soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel-soft)}
 
@@ -663,7 +671,7 @@ function renderClientes(q){
         '<span class="meta"><span class="h">🕒 ' + (p.fecha ? esc(String(p.fecha).replace(/,\s*/,' ')) : hora) + '</span></span>' +
         '<span class="pill">' + cods.length + ' art · ' + unidades + ' u.</span>' +
       '</button>' +
-      '<div class="cli-body"><table><thead><tr>' +
+      '<div class="cli-body"><div class="tbl-scroll"><table><thead><tr>' +
         '<th class="num">Cant.</th><th>Producto</th><th>Tipo</th><th>Observación</th>' +
       '</tr></thead><tbody>';
     cods.forEach(i=>{
@@ -676,7 +684,7 @@ function renderClientes(q){
         '<td>' + (obs ? '<span class="obs-inline">💬 ' + esc(obs) + '</span>' : '') + '</td>' +
       '</tr>';
     });
-    html += '</tbody></table>' +
+    html += '</tbody></table></div>' +
       '<div class="cli-foot"><span>📅 Jornada del pedido: ' + esc(p.jornada || selFecha) + '</span>' +
       '<span>🧾 Guardado: ' + esc(p.fecha || '—') + '</span></div></div></div>';
   });
