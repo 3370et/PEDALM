@@ -100,6 +100,8 @@ input,select{font-family:inherit}
 .login-box .sub{text-align:center;font-size:12.5px;color:var(--text-soft);margin-bottom:8px}
 .login-box input{width:100%;padding:13px 16px;border:2px solid var(--border-input);border-radius:12px;background:var(--input-bg);color:var(--text);font-size:15px}
 .login-box input:focus{outline:none;border-color:var(--green)}
+/* El usuario del supervisor siempre en MAYÚSCULAS */
+#sup-input{text-transform:uppercase}
 .login-remember{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-soft);cursor:pointer}
 .ingresar{background:linear-gradient(135deg,var(--login-grad1),var(--login-grad2));color:#fff;border:none;padding:14px;border-radius:12px;font-size:15px;font-weight:800;letter-spacing:1px;margin-top:6px}
 #login-error{color:var(--red-text);font-size:13px;text-align:center;min-height:18px}
@@ -374,7 +376,8 @@ async function loginSup(){
   const inpUsu = document.getElementById('sup-input');
   const inpPas = document.getElementById('sup-pass');
   const err = document.getElementById('login-error');
-  const usu = inpUsu.value.trim();
+  /* El usuario siempre se procesa en MAYÚSCULAS (el nodo en Firebase debe estar en mayúsculas) */
+  const usu = inpUsu.value.trim().toUpperCase();
   const pas = inpPas.value.trim();
   err.textContent = '';
   if(!usu || !pas){ err.textContent = 'Escriba usuario y contraseña'; return; }
@@ -838,7 +841,7 @@ async function guardarClave(idx){
 ============================================================ */
 (async function(){
   let usu = null;
-  try{ usu = sessionStorage.getItem('sup_ok'); }catch(e){}
+  try{ usu = (sessionStorage.getItem('sup_ok') || '').toUpperCase() || null; }catch(e){}
   if(!usu){ return; }
   try{
     const s = await db.ref('PEDIDOS/Superv/' + usu).once('value');
@@ -858,7 +861,7 @@ document.getElementById('sup-input').addEventListener('keydown', e=>{
 try{
   const guar = localStorage.getItem('sup_usu');
   if(guar){
-    document.getElementById('sup-input').value = guar;
+    document.getElementById('sup-input').value = guar.toUpperCase();
     document.getElementById('remember-sup').checked = true;
     document.getElementById('sup-pass').focus();
   }
