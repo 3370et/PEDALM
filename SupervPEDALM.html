@@ -202,6 +202,20 @@ tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top
 .obs-inline{color:var(--orange-text);font-style:italic;font-size:12px}
 .cli-foot{padding:9px 14px;font-size:12px;color:var(--text-soft);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--panel-soft)}
 
+/* ====== CLAVES DE CLIENTES ASIGNADOS ====== */
+.clv-nota{font-size:12px;color:var(--text-soft);margin:0 0 12px}
+.clv-row{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.clv-info{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.clv-info b{font-size:14px}
+.clv-act{background:var(--tipo-bg);color:var(--tipo-txt);font-family:monospace;font-weight:800;font-size:12px;padding:3px 10px;border-radius:20px}
+.clv-edit{display:flex;align-items:center;gap:8px}
+.clv-in{width:110px;padding:8px 10px;border:2px solid var(--border-input);border-radius:10px;background:var(--input-bg);color:var(--text);font-family:monospace;font-size:14px;text-align:center;letter-spacing:2px}
+.clv-in:focus{outline:none;border-color:var(--green)}
+.clv-save{padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:12.5px;cursor:pointer}
+.clv-save:disabled{opacity:.45;cursor:not-allowed}
+.clv-msg{font-size:11.5px;color:var(--red-text);min-width:110px}
+.clv-msg.ok{color:var(--green-text)}
+
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-txt);padding:12px 22px;border-radius:30px;font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
 .cod{font-family:monospace;font-size:12px;color:var(--text-mute)}
 </style>
@@ -257,6 +271,7 @@ tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top
     <div class="toolbar">
       <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
       <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
+      <button class="tab" id="tab-clv" onclick="setTab('clv')">🔑 Claves</button>
       <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
     </div>
 
@@ -265,6 +280,7 @@ tr.det-row td{background:var(--panel-soft);padding:6px 12px 10px 40px;border-top
 
     <div id="sec-cons"></div>
     <div id="sec-cli" class="hidden"></div>
+    <div id="sec-clv" class="hidden"></div>
   </div>
 </div>
 
@@ -293,7 +309,8 @@ const HORA_CORTE = null;
 const FINDE_DOMINGO = true;
 
 /* ============================================================
-   2) ESTADO (solo lectura — nunca se escribe en la BD)
+   2) ESTADO (lectura — única escritura permitida: CLAVE del cliente,
+      pestaña 🔑 Claves → PEDIDOS/Clientes/{cod}/CLAVE)
 ============================================================ */
 let SUP = { usu:'', clientes:[], clientesSet:null };
 let artInfo = {};        /* catálogo: CODART → {ARTICULO, TIPO, LINEA} */
@@ -505,8 +522,12 @@ function setTab(t){
   tab = t;
   document.getElementById('tab-cons').classList.toggle('act', t==='cons');
   document.getElementById('tab-cli').classList.toggle('act', t==='cli');
+  document.getElementById('tab-clv').classList.toggle('act', t==='clv');
   document.getElementById('sec-cons').classList.toggle('hidden', t!=='cons');
   document.getElementById('sec-cli').classList.toggle('hidden', t!=='cli');
+  document.getElementById('sec-clv').classList.toggle('hidden', t!=='clv');
+  /* El filtro de artículos/clientes no aplica en la pestaña de claves */
+  document.getElementById('search').style.display = (t==='clv') ? 'none' : '';
   render();
 }
 
@@ -556,6 +577,7 @@ function render(){
 
   renderConsolidado(cons, q);
   renderClientes(q);
+  renderClaves();
 }
 
 function nombreDe(c){
@@ -697,6 +719,106 @@ function renderClientes(q){
       '<span>🧾 Guardado: ' + esc(p.fecha || '—') + '</span></div></div></div>';
   });
   box.innerHTML = html;
+}
+
+/* ============================================================
+   7b) CLAVES DE CLIENTES ASIGNADOS
+   Visualiza y modifica PEDIDOS/Clientes/{cod}/CLAVE (la clave con la
+   que el cliente entra a la app de pedidos).
+   Regla: exactamente 4 caracteres, números o letras MINÚSCULAS,
+   sin repetir ningún carácter.
+   Es la ÚNICA escritura que realiza este visualizador.
+============================================================ */
+let CLV_LISTA = [];
+let clvFirma = '';
+
+function claveValida(v){
+  if(!/^[0-9a-z]{4}$/.test(v)) return 'Debe tener 4 caracteres: números o letras minúsculas';
+  if(new Set(v).size !== 4) return 'Cada letra o número no puede repetirse';
+  return '';
+}
+
+function renderClaves(){
+  const box = document.getElementById('sec-clv');
+  const lista = SUP.clientes.slice().sort((a,b)=> nombreDe(a).localeCompare(nombreDe(b)));
+  /* Firma: si no cambió el listado ni las claves guardadas, no se re-renderiza
+     (así no se borra lo que el supervisor esté escribiendo cuando llega un pedido) */
+  const firma = lista.map(c=> c + '=' + ((clientesReg[c]||{}).CLAVE || '')).join('|');
+  if(firma === clvFirma) return;
+  clvFirma = firma;
+  CLV_LISTA = lista;
+
+  if(!lista.length){
+    box.innerHTML = '<p class="empty-msg">Sin clientes asignados</p>';
+    return;
+  }
+  let html = '<p class="clv-nota">🔑 Clave con la que cada cliente asignado ingresa a la app de pedidos. ' +
+    'Debe tener 4 caracteres: números o letras minúsculas, sin repetir ninguno.</p>';
+  lista.forEach((c, idx)=>{
+    const clave = (clientesReg[c]||{}).CLAVE || '';
+    html += '<div class="clv-row">' +
+      '<div class="clv-info">' +
+        '<b>' + esc(nombreDe(c)) + '</b>' +
+        '<span class="cod">(' + esc(c) + ')</span>' +
+        '<span class="clv-act" id="clv-act-' + idx + '">' + (clave ? '🔑 ' + esc(clave) : '🔑 sin clave') + '</span>' +
+      '</div>' +
+      '<div class="clv-edit">' +
+        '<input class="clv-in" id="clv-in-' + idx + '" maxlength="4" placeholder="nueva" autocomplete="off" oninput="filtraClave(' + idx + ')">' +
+        '<button class="clv-save" id="clv-save-' + idx + '" disabled onclick="guardarClave(' + idx + ')">Guardar</button>' +
+        '<span class="clv-msg" id="clv-msg-' + idx + '"></span>' +
+      '</div>' +
+    '</div>';
+  });
+  box.innerHTML = html;
+}
+
+/* Filtro en vivo: pasa a minúscula, admite solo [0-9a-z] y descarta
+   cualquier carácter que ya esté en lo escrito (no se puede repetir) */
+function filtraClave(idx){
+  const inp = document.getElementById('clv-in-' + idx);
+  const msg = document.getElementById('clv-msg-' + idx);
+  const btn = document.getElementById('clv-save-' + idx);
+  const v = inp.value.toLowerCase().replace(/[^0-9a-z]/g, '');
+  let out = '';
+  for(let k=0; k<v.length; k++){ if(out.indexOf(v[k]) === -1) out += v[k]; }
+  if(out !== inp.value) inp.value = out;
+  const err = claveValida(out);
+  if(out.length === 4 && !err){
+    msg.textContent = '✓ válida';
+    msg.className = 'clv-msg ok';
+    btn.disabled = false;
+  }else{
+    msg.textContent = out ? err : '';
+    msg.className = 'clv-msg';
+    btn.disabled = true;
+  }
+}
+
+async function guardarClave(idx){
+  const c = CLV_LISTA[idx];
+  const inp = document.getElementById('clv-in-' + idx);
+  const msg = document.getElementById('clv-msg-' + idx);
+  const btn = document.getElementById('clv-save-' + idx);
+  if(!c){ return; }
+  const v = inp.value;
+  const err = claveValida(v);
+  if(err){ msg.textContent = err; msg.className = 'clv-msg'; return; }
+  btn.disabled = true;
+  try{
+    await db.ref('PEDIDOS/Clientes/' + c + '/CLAVE').set(v);
+    clientesReg[c] = clientesReg[c] || {};
+    clientesReg[c].CLAVE = v;
+    inp.value = '';
+    msg.textContent = '✓ Clave guardada';
+    msg.className = 'clv-msg ok';
+    document.getElementById('clv-act-' + idx).textContent = '🔑 ' + v;
+    toast('🔑 Clave actualizada: ' + nombreDe(c));
+  }catch(e){
+    console.error(e);
+    msg.textContent = 'Error al guardar (revise reglas de Firebase)';
+    msg.className = 'clv-msg';
+    btn.disabled = false;
+  }
 }
 
 /* ============================================================
