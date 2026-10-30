@@ -309,12 +309,13 @@ const HORA_CORTE = null;
 const FINDE_DOMINGO = true;
 
 /* ============================================================
-   2) ESTADO (lectura — única escritura permitida: CLAVE del cliente,
-      pestaña 🔑 Claves → PEDIDOS/Clientes/{cod}/CLAVE)
+   2) ESTADO (lectura — única escritura permitida: clave del cliente,
+      pestaña 🔑 Claves → PEDIDOS/Claves/{cod})
 ============================================================ */
 let SUP = { usu:'', clientes:[], clientesSet:null };
 let artInfo = {};        /* catálogo: CODART → {ARTICULO, TIPO, LINEA} */
 let clientesReg = {};    /* registro: CODCLIENTE → {CLIENTE: nombre} */
+let clavesReg = {};      /* claves: CODCLIENTE → 'xxxx' (nodo Claves, no lo toca la macro) */
 let data = {};           /* pedidos de la jornada visible (solo autorizados) */
 let selFecha = '';
 let tab = 'cons';
@@ -423,15 +424,17 @@ function arrancar(usu, clientes){
   cargarDatosBase();
 }
 
-/* Catálogo y registro de clientes (solo lectura) */
+/* Catálogo, registro de clientes y claves (solo lectura) */
 async function cargarDatosBase(){
   try{
-    const [sArt, sCli] = await Promise.all([
+    const [sArt, sCli, sClv] = await Promise.all([
       db.ref('PEDIDOS/Articulos').once('value'),
-      db.ref('PEDIDOS/Clientes').once('value')
+      db.ref('PEDIDOS/Clientes').once('value'),
+      db.ref('PEDIDOS/Claves').once('value').catch(()=>({ val: () => null }))
     ]);
     artInfo = sArt.val() || {};
     clientesReg = sCli.val() || {};
+    clavesReg = sClv.val() || {};
   }catch(e){ console.error(e); }
   armarFechas();
   escuchar(selFecha);
@@ -723,14 +726,21 @@ function renderClientes(q){
 
 /* ============================================================
    7b) CLAVES DE CLIENTES ASIGNADOS
-   Visualiza y modifica PEDIDOS/Clientes/{cod}/CLAVE (la clave con la
-   que el cliente entra a la app de pedidos).
+   Visualiza y modifica PEDIDOS/Claves/{cod}: la clave con la que el
+   cliente entra a la app de pedidos. Nodo independiente del registro
+   de clientes para que la macro de Excel NO la borre al subir.
+   (Respaldo de lectura: Clientes/{cod}/CLAVE, formato antiguo.)
    Regla: exactamente 4 caracteres, números o letras MINÚSCULAS,
    sin repetir ningún carácter.
    Es la ÚNICA escritura que realiza este visualizador.
 ============================================================ */
 let CLV_LISTA = [];
 let clvFirma = '';
+
+/* Clave vigente de un cliente: primero nodo Claves; respaldo campo antiguo */
+function claveDe(c){
+  return clavesReg[c] || (clientesReg[c]||{}).CLAVE || '';
+}
 
 function claveValida(v){
   if(!/^[0-9a-z]{4}$/.test(v)) return 'Debe tener 4 caracteres: números o letras minúsculas';
@@ -743,7 +753,7 @@ function renderClaves(){
   const lista = SUP.clientes.slice().sort((a,b)=> nombreDe(a).localeCompare(nombreDe(b)));
   /* Firma: si no cambió el listado ni las claves guardadas, no se re-renderiza
      (así no se borra lo que el supervisor esté escribiendo cuando llega un pedido) */
-  const firma = lista.map(c=> c + '=' + ((clientesReg[c]||{}).CLAVE || '')).join('|');
+  const firma = lista.map(c=> c + '=' + claveDe(c)).join('|');
   if(firma === clvFirma) return;
   clvFirma = firma;
   CLV_LISTA = lista;
@@ -753,9 +763,10 @@ function renderClaves(){
     return;
   }
   let html = '<p class="clv-nota">🔑 Clave con la que cada cliente asignado ingresa a la app de pedidos. ' +
-    'Debe tener 4 caracteres: números o letras minúsculas, sin repetir ninguno.</p>';
+    'Debe tener 4 caracteres: números o letras minúsculas, sin repetir ninguno. ' +
+    'Un cliente sin clave asignada no puede ingresar.</p>';
   lista.forEach((c, idx)=>{
-    const clave = (clientesReg[c]||{}).CLAVE || '';
+    const clave = claveDe(c);
     html += '<div class="clv-row">' +
       '<div class="clv-info">' +
         '<b>' + esc(nombreDe(c)) + '</b>' +
@@ -805,9 +816,10 @@ async function guardarClave(idx){
   if(err){ msg.textContent = err; msg.className = 'clv-msg'; return; }
   btn.disabled = true;
   try{
-    await db.ref('PEDIDOS/Clientes/' + c + '/CLAVE').set(v);
-    clientesReg[c] = clientesReg[c] || {};
-    clientesReg[c].CLAVE = v;
+    /* Se guarda en PEDIDOS/Claves/{cod}: la macro de clientes no toca este nodo,
+       así la clave sobrevive a cada carga de la macro */
+    await db.ref('PEDIDOS/Claves/' + c).set(v);
+    clavesReg[c] = v;
     inp.value = '';
     msg.textContent = '✓ Clave guardada';
     msg.className = 'clv-msg ok';
