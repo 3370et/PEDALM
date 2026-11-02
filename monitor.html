@@ -108,6 +108,11 @@ tr.rowp:hover{background:var(--panel-soft)}
 .ccard th{padding:6px 8px;font-size:10.5px}
 .ccard td{padding:5px 8px}
 .badge-n{background:var(--green);color:#fff;border-radius:20px;font-size:11px;font-weight:700;padding:3px 10px;white-space:nowrap}
+.cli-csv{background:var(--green-soft);color:var(--green-text);border:1px solid var(--green-border);border-radius:8px;font-size:10.5px;font-weight:700;padding:4px 9px;cursor:pointer;white-space:nowrap}
+.cli-csv:hover{filter:brightness(1.06)}
+.ord-chips{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.ord-chip{background:var(--panel);color:var(--text-soft);border:1px solid var(--border-input);border-radius:20px;font-size:11.5px;font-weight:700;padding:5px 12px;cursor:pointer}
+.ord-chip.act{background:var(--green);color:#fff;border-color:var(--green)}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
 
@@ -285,6 +290,7 @@ const ADMIN_PIN = "";
 ============================================================ */
 let tab = 'cons';
 let ordenCons = 'linea';      // 'linea' | 'total' — orden del consolidado
+let ordenCli = 'nombre';      // 'nombre' | 'reciente' — orden de la vista por cliente
 let selFecha = '';
 let data = {};                // cliente → pedido de la jornada
 let prevTs = {};
@@ -461,6 +467,12 @@ async function init(){
       const sel = document.getElementById('csv-del');
       if(sel && [...sel.options].some(o=>o.value === delGuardado)) sel.value = delGuardado;
     }
+  }catch(e){}
+
+  /* orden de la vista por cliente recordado ('nombre' por defecto) */
+  try{
+    const ordGuardado = localStorage.getItem('monitor_orden_cli');
+    if(ordGuardado === 'nombre' || ordGuardado === 'reciente') ordenCli = ordGuardado;
   }catch(e){}
 
   try{
@@ -835,12 +847,25 @@ function renderClientes(){
     el.innerHTML = '<div class="empty">Sin pedidos para mostrar.</div>';
     return;
   }
-  clis.sort((a,b)=> (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
 
-  el.innerHTML = '<div class="clientes-grid">' + clis.map(c=>{
+  /* Orden: alfabético por nombre (por defecto) o del más reciente al más antiguo (ts) */
+  if(ordenCli === 'reciente'){
+    clis.sort((a,b)=> ((data[b].ts||0) - (data[a].ts||0)) ||
+      (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
+  } else {
+    clis.sort((a,b)=> (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
+  }
+
+  el.innerHTML =
+    '<div class="ord-chips" title="Orden de las tarjetas de cliente">' +
+      '<button class="ord-chip' + (ordenCli==='nombre' ? ' act' : '') + '" onclick="setOrdenCli(\'nombre\')">A–Z nombre</button>' +
+      '<button class="ord-chip' + (ordenCli==='reciente' ? ' act' : '') + '" onclick="setOrdenCli(\'reciente\')">🕐 Más recientes</button>' +
+    '</div>' +
+    '<div class="clientes-grid">' + clis.map(c=>{
     const p = data[c];
     const items = Object.keys(p.items || {});
     const uni = items.reduce((s,i)=> s + (p.items[i].cantidad||0), 0);
+    const codArg = String(c).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `
     <div class="ccard">
       <div class="top">
@@ -848,7 +873,10 @@ function renderClientes(){
           <div class="nom">${esc(p.nombreCliente || c)}</div>
           <div class="cli">${esc(c)}</div>
         </div>
-        <span class="badge-n">${items.length} art · ${uni} und</span>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <span class="badge-n">${items.length} art · ${uni} und</span>
+          <button class="cli-csv" onclick="copiarCSVCliente('${codArg}')" title="Copiar el CSV de importación (13 columnas) solo de este cliente, con el separador elegido">📋 CSV</button>
+        </div>
       </div>
       <div class="meta">✔ Confirmado: ${esc(p.fecha || '—')}</div>
       <table>
@@ -860,6 +888,57 @@ function renderClientes(){
       </table>
     </div>`;
   }).join('') + '</div>';
+}
+
+function setOrdenCli(o){
+  ordenCli = o;
+  try{ localStorage.setItem('monitor_orden_cli', o); }catch(e){}
+  render();
+}
+
+/* Filas CSV (formato de importación, 13 columnas) de UN cliente, sin cabecera.
+   La usa el export global y el botón 📋 CSV de cada tarjeta. */
+function filasDeCliente(c){
+  const p = data[c];
+  const out = [];
+  Object.keys(p.items || {}).forEach(i=>{
+    const a = artInfo[i] || {};
+    const cant = p.items[i].cantidad || 0;
+    out.push([
+      c,                                   /* CLIENTE (código) */
+      p.nombreCliente || '',               /* NOMBRE */
+      a.LINEA || '',                       /* LINEA (catálogo) */
+      a.TIPO || '',                        /* TIPO (catálogo) */
+      p.items[i].ARTICULO || a.ARTICULO || i, /* PRODUCTO */
+      cant,                                /* PEDIDO */
+      '',                                  /* PESO (vacío) */
+      p.items[i].obs || '',                /* COMENTARIO */
+      i,                                   /* CODIGO PRODUCTO */
+      1,                                   /* NUMERO PEDIDO (fijo) */
+      String(p.fecha || selFecha).replace(/,\s*/, ' '), /* FECHA guardado */
+      '',                                  /* EJECUTIVO (vacío) */
+      cant                                 /* PEDIDO ORIGINAL */
+    ]);
+  });
+  return out;
+}
+
+/* Copia el CSV individual de UN cliente: mismo formato de 13 columnas
+   y mismo separador del export global (solo portapapeles, sin archivo). */
+function copiarCSVCliente(cod){
+  const p = data[cod];
+  if(!p) return;
+  const rows = [['CLIENTE','NOMBRE','LINEA','TIPO','PRODUCTO','PEDIDO','PESO','COMENTARIO','CODIGO PRODUCTO','NUMERO PEDIDO','FECHA','EJECUTIVO','PEDIDO ORIGINAL']];
+  rows.push(...filasDeCliente(cod));
+  if(rows.length === 1){ toast('El cliente no tiene líneas que copiar'); return; }
+  const txt = csvDesdeFilas(rows);   /* sin BOM para portapapeles */
+  const nombre = p.nombreCliente || cod;
+  const done = ()=> toast('📋 CSV de ' + nombre + ' copiado: ' + (rows.length - 1) + ' filas · separador ' + nombreDelimitador());
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
+  } else {
+    fallbackCopiar(txt, done);
+  }
 }
 
 /* Copia el CONSOLIDADO completo: solo artículos y totales, sin detalle de clientes.
@@ -945,26 +1024,7 @@ function construirFilasCSV(){
   if(!clis.length){ toast('Nada que exportar'); return null; }
   const rows = [['CLIENTE','NOMBRE','LINEA','TIPO','PRODUCTO','PEDIDO','PESO','COMENTARIO','CODIGO PRODUCTO','NUMERO PEDIDO','FECHA','EJECUTIVO','PEDIDO ORIGINAL']];
   clis.forEach(c=>{
-    const p = data[c];
-    Object.keys(p.items || {}).forEach(i=>{
-      const a = artInfo[i] || {};
-      const cant = p.items[i].cantidad || 0;
-      rows.push([
-        c,                                   /* CLIENTE (código) */
-        p.nombreCliente || '',               /* NOMBRE */
-        a.LINEA || '',                       /* LINEA (catálogo) */
-        a.TIPO || '',                        /* TIPO (catálogo) */
-        p.items[i].ARTICULO || a.ARTICULO || i, /* PRODUCTO */
-        cant,                                /* PEDIDO */
-        '',                                  /* PESO (vacío) */
-        p.items[i].obs || '',                /* COMENTARIO */
-        i,                                   /* CODIGO PRODUCTO */
-        1,                                   /* NUMERO PEDIDO (fijo) */
-        String(p.fecha || selFecha).replace(/,\s*/, ' '), /* FECHA guardado */
-        '',                                  /* EJECUTIVO (vacío) */
-        cant                                 /* PEDIDO ORIGINAL */
-      ]);
-    });
+    filasDeCliente(c).forEach(r=> rows.push(r));
   });
   return {rows, nombre: 'pedidos_detalle_' + selFecha + '.csv'};
 }
