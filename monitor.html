@@ -116,6 +116,61 @@ tr.rowp:hover{background:var(--panel-soft)}
 
 .empty{background:var(--panel);border:1px dashed var(--border);border-radius:12px;color:var(--text-mute);padding:32px;text-align:center;font-size:14px}
 
+
+/* ===== RESUMEN MATRIZ (clientes × productos) ===== */
+.res-bar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.res-bar .lbl{font-size:12.5px;color:var(--text-soft);font-weight:700}
+.res-bar label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--text);background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:7px 10px;cursor:pointer}
+.res-bar label input{accent-color:var(--green);width:15px;height:15px}
+.res-btn{background:var(--green-soft);color:var(--green-text);border:1px solid var(--green-border);padding:8px 12px;font-size:12px;font-weight:700;border-radius:8px}
+.res-btn:hover{filter:brightness(.95)}
+.res-btn:disabled{opacity:.5;cursor:default}
+.res-info{font-size:11.5px;color:var(--text-mute);margin-left:auto}
+
+/* panel de grupos ocultos */
+.res-ocultos{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;max-height:220px;overflow:auto}
+.res-oc-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:800;margin-bottom:6px}
+.res-oc-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-soft);font-size:12.5px}
+.res-oc-item:last-child{border-bottom:none}
+.res-oc-item .tag{font-size:9.5px;font-weight:800;color:#fff;background:var(--green);border-radius:4px;padding:1px 6px;margin-right:6px}
+.res-show{background:var(--green-soft);color:var(--green-text);border:1px solid var(--green-border);border-radius:7px;font-size:11px;font-weight:700;padding:4px 9px;cursor:pointer}
+.res-show:hover{filter:brightness(.95)}
+
+.matrix-wrap{overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
+.matrix{border-collapse:collapse;font-size:12px;width:100%}
+.matrix th,.matrix td{border:1px solid var(--border-soft);padding:5px 7px;white-space:nowrap}
+.matrix thead th{background:var(--tipo-bg);color:var(--green-text);font-size:11px;text-transform:uppercase;letter-spacing:.3px;height:32px}
+/* fila grupo superior (LÍNEA) */
+.matrix .row-grp th{position:sticky;top:0;z-index:4}
+/* fila subgrupo (TIPO) */
+.matrix .row-sub th{position:sticky;top:32px;z-index:3;background:var(--panel-soft)}
+/* fila producto */
+.matrix .row-prod th{position:sticky;top:64px;z-index:2;background:var(--panel-soft);text-transform:none;letter-spacing:0;padding:3px 6px}
+/* columna CLIENTE congelada a la izquierda (esquina arriba) */
+.matrix th.cli-col{position:sticky;left:0;top:0;z-index:7;background:var(--tipo-bg);border-right:2px solid var(--border);min-width:140px}
+/* columna TOTAL congelada a la derecha (esquina arriba) */
+.matrix th.tot-col{position:sticky;right:0;top:0;z-index:7;background:var(--green-soft);min-width:64px}
+.matrix td.cli-col{position:sticky;left:0;z-index:5;background:var(--panel);font-weight:700;border-right:2px solid var(--border);min-width:140px}
+.matrix td.tot-col{position:sticky;right:0;z-index:5;background:var(--green-soft);font-weight:800;min-width:64px}
+.matrix .grp-tipo,.matrix .grp-lin{cursor:pointer;user-select:none}
+.matrix .grp-tipo:hover,.matrix .grp-lin:hover{filter:brightness(.97)}
+.matrix .grp-ind{font-size:9px;opacity:.65;margin-left:4px}
+/* botón ✕ para ocultar un grupo desde su cabecera */
+.grp-hide{background:transparent;color:var(--text-mute);border:none;font-size:11px;font-weight:800;padding:1px 5px;margin-left:6px;border-radius:5px;vertical-align:middle;line-height:1;cursor:pointer}
+.grp-hide:hover{color:var(--red);background:var(--red-soft)}
+.matrix .th-prod{min-width:64px;max-width:120px;text-align:left}
+.matrix .ph-art{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:108px;font-size:11px;color:var(--text)}
+.matrix .ph-cod{font-family:monospace;font-size:9px;color:var(--text-mute)}
+.matrix .num-cell{text-align:right;font-weight:600}
+.matrix .num-cell.zero{color:var(--text-mute);font-weight:400}
+.matrix tbody tr:hover td{background:var(--panel-soft)}
+.matrix tbody tr:hover td.cli-col{background:var(--panel)}
+.matrix tbody tr:hover td.tot-col{background:var(--green-soft)}
+.matrix .tot-row td{background:var(--green-soft);font-weight:800}
+.matrix .tot-row td.cli-col{background:var(--green-soft)}
+/* sombra en el borde de la columna congelada al desplazar horizontalmente */
+.matrix-wrap.scrolled-h .matrix th.cli-col,.matrix-wrap.scrolled-h .matrix td.cli-col{box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
+.matrix-wrap.scrolled-hr .matrix th.tot-col,.matrix-wrap.scrolled-hr .matrix td.tot-col{box-shadow:-6px 0 8px -6px rgba(0,0,0,.18)}
 /* ===== MODALES ===== */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.35);max-height:88vh;overflow-y:auto}
@@ -202,6 +257,7 @@ tr.rowp:hover{background:var(--panel-soft)}
   <div class="toolbar">
     <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
     <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
+    <button class="tab" id="tab-res" onclick="setTab('res')">🧮 Resumen</button>
     <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
     <button class="csv-btn" onclick="copiarConsolidado()" title="Copiar artículos y totales del consolidado, sin detalle de clientes">📋 Copiar consolidado</button>
     <button class="csv-btn" onclick="exportCSV()">📄 Exportar CSV</button>
@@ -216,6 +272,7 @@ tr.rowp:hover{background:var(--panel-soft)}
 
   <div id="sec-cons"></div>
   <div id="sec-cli" class="hidden"></div>
+  <div id="sec-res" class="hidden"></div>
 </div>
 
 <!-- MODAL DE BLOQUEO CON TEMPORIZADOR -->
@@ -299,6 +356,12 @@ let artInfo = {};             // catálogo
 let clientesReg = {};         // clientes registrados
 let refPed = null, refBloq = null;
 let bloqVal = null;
+const resColLin = new Set();    /* líneas (grupo superior) colapsadas en el resumen matriz */
+const resColTipo = new Set();   /* claves "lin||tipo" (subgrupo TIPO) colapsadas en el resumen matriz */
+const resHideLin = new Set();   /* líneas OCULTAS en el resumen matriz */
+const resHideTipo = new Set();  /* claves "lin||tipo" (TIPO) OCULTAS en el resumen matriz */
+let resOcultarVacios = true;    /* resumen matriz: ocultar productos sin pedido */
+let resPanelOcultos = false;    /* resumen matriz: panel de grupos ocultos abierto */
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -698,8 +761,10 @@ function setTab(t){
   tab = t;
   document.getElementById('tab-cons').classList.toggle('act', t==='cons');
   document.getElementById('tab-cli').classList.toggle('act', t==='cli');
+  document.getElementById('tab-res').classList.toggle('act', t==='res');
   document.getElementById('sec-cons').classList.toggle('hidden', t!=='cons');
   document.getElementById('sec-cli').classList.toggle('hidden', t!=='cli');
+  document.getElementById('sec-res').classList.toggle('hidden', t!=='res');
   render();
 }
 
@@ -734,6 +799,7 @@ function render(){
 
   renderConsolidado(cons);
   renderClientes();
+  renderResumen();
 }
 
 /* ===== CONSOLIDADO: agrupado por línea (cabecera clicable → copia) ===== */
@@ -830,6 +896,380 @@ function setOrdenCons(o){
 function toggleDet(row){
   const det = document.querySelector('[data-det="' + CSS.escape(row.dataset.cod) + '"]');
   if(det) det.classList.toggle('hidden');
+}
+
+
+/* ============================================================
+   8b) RESUMEN MATRIZ: clientes (filas, columna congelada) ×
+       productos agrupados por LÍNEA (grupo superior) → TIPO (subgrupo).
+   - Cada grupo (LÍNEA o TIPO) es replegable/desplegable con un clic.
+   - ✕ en cada cabecera de grupo para OCULTARLO (panel "Ocultos" lo restaura).
+   - "Ocultar vacíos" esconde los productos sin pedidos.
+   - La columna CLIENTE (izq.) y la de TOTAL (der.) quedan congeladas al desplazar.
+   - "Copiar resumen" copia la tabla visible con el separador elegido (#csv-del).
+============================================================ */
+function resArg(s){
+  /* Escapa un texto para usarlo como argumento string dentro de un
+     atributo HTML onclick="fn('...')". */
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+
+function resTotalesPorProd(){
+  const tot = {};
+  Object.keys(data).forEach(c=>{
+    const items = data[c].items || {};
+    Object.keys(items).forEach(cod=>{
+      tot[cod] = (tot[cod]||0) + (items[cod].cantidad||0);
+    });
+  });
+  return tot;
+}
+
+/* Lista de productos (columnas) agrupados por LÍNEA → TIPO.
+   Respeta: "Ocultar vacíos", el filtro de búsqueda y los grupos ocultos
+   (resHideLin / resHideTipo). */
+function resListaProds(totPorProd){
+  const q = qn();
+  const lista = [];
+  const seen = {};
+  /* del catálogo */
+  Object.keys(artInfo).forEach(cod=>{
+    const a = artInfo[cod];
+    if(!a || !a.ARTICULO) return;
+    if(resOcultarVacios && !(totPorProd[cod] > 0)) return;
+    if(q && !norm(a.ARTICULO + ' ' + cod + ' ' + (a.TIPO||'') + ' ' + (a.LINEA||'')).includes(q)) return;
+    lista.push({cod, art:a.ARTICULO, tipo:a.TIPO||'(SIN TIPO)', lin:a.LINEA||'(SIN LÍNEA)'});
+    seen[cod] = 1;
+  });
+  /* productos pedidos que no están en el catálogo */
+  Object.keys(totPorProd).forEach(cod=>{
+    if(seen[cod]) return;
+    if(resOcultarVacios && !(totPorProd[cod] > 0)) return;
+    const a = artInfo[cod] || {};
+    if(q && !norm((a.ARTICULO||cod) + ' ' + cod + ' ' + (a.TIPO||'') + ' ' + (a.LINEA||'')).includes(q)) return;
+    lista.push({cod, art:a.ARTICULO||cod, tipo:a.TIPO||'(SIN TIPO)', lin:a.LINEA||'(SIN LÍNEA)'});
+  });
+  /* descarta productos de grupos ocultos */
+  const visibles = lista.filter(p=>{
+    if(resHideLin.has(p.lin)) return false;
+    if(resHideTipo.has(p.lin + '||' + p.tipo)) return false;
+    return true;
+  });
+  /* Orden: LÍNEA → TIPO → ARTÍCULO */
+  visibles.sort((x,y)=>{
+    const c = String(x.lin).localeCompare(String(y.lin));
+    if(c) return c;
+    const c2 = String(x.tipo).localeCompare(String(y.tipo));
+    if(c2) return c2;
+    return String(x.art).localeCompare(String(y.art));
+  });
+  return visibles;
+}
+
+/* Modelo plano de columnas ya con los grupos colapsados aplicados.
+   Jerarquía: LÍNEA (grupo superior) → TIPO (subgrupo) → producto. */
+function resModeloCols(prods){
+  const cols = [];
+  const linsOrden = [];
+  const linMap = {};
+  prods.forEach(p=>{
+    if(!linMap[p.lin]){ linMap[p.lin] = {tipos:[], tipoMap:{}}; linsOrden.push(p.lin); }
+    const lm = linMap[p.lin];
+    if(!lm.tipoMap[p.tipo]){ lm.tipoMap[p.tipo] = []; lm.tipos.push(p.tipo); }
+    lm.tipoMap[p.tipo].push(p);
+  });
+  linsOrden.forEach(lin=>{
+    if(resColLin.has(lin)){ cols.push({kind:'linColl', lin}); return; }
+    linMap[lin].tipos.forEach(tipo=>{
+      const key = lin + '||' + tipo;
+      if(resColTipo.has(key)){ cols.push({kind:'tipoColl', lin, tipo}); return; }
+      linMap[lin].tipoMap[tipo].forEach(p=> cols.push({kind:'prod', lin, tipo, cod:p.cod, art:p.art}));
+    });
+  });
+  return cols;
+}
+
+/* HTML del panel de grupos ocultos (con botón para restaurar cada uno). */
+function ocultosListHTML(){
+  const items = [];
+  resHideLin.forEach(lin=>{
+    items.push('<div class="res-oc-item"><span><span class="tag">LÍNEA</span>' + esc(lin) + '</span>' +
+      '<button class="res-show" onclick="showLinRes(\'' + resArg(lin) + '\')">↩ Mostrar</button></div>');
+  });
+  resHideTipo.forEach(key=>{
+    const idx = key.indexOf('||');
+    const lin = idx >= 0 ? key.slice(0, idx) : '';
+    const tipo = idx >= 0 ? key.slice(idx + 2) : key;
+    items.push('<div class="res-oc-item"><span><span class="tag">TIPO</span>' + esc(tipo) + ' <span class="cod">(' + esc(lin) + ')</span></span>' +
+      '<button class="res-show" onclick="showTipoRes(\'' + resArg(key) + '\')">↩ Mostrar</button></div>');
+  });
+  return items.length ? items.join('') : '<div class="empty" style="padding:10px">Ningún grupo oculto</div>';
+}
+
+function renderResumen(){
+  const el = document.getElementById('sec-res');
+  if(!el) return;
+  if(tab !== 'res') return;   /* sólo reconstruye cuando la pestaña está activa */
+
+  const totPorProd = resTotalesPorProd();
+  const prods = resListaProds(totPorProd);
+
+  /* clientes (filas) — con pedido, filtrados por búsqueda */
+  const q = qn();
+  let clis = Object.keys(data);
+  if(q) clis = clis.filter(c=>{
+    const p = data[c];
+    const txt = norm((p.nombreCliente||'') + ' ' + c + ' ' + Object.values(p.items||{}).map(i=>i.ARTICULO||'').join(' '));
+    return txt.includes(q);
+  });
+  clis.sort((a,b)=> (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
+
+  const nTipos = new Set(prods.map(p=>p.tipo)).size;
+  const nLin = new Set(prods.map(p=>p.lin)).size;
+  const nOcultos = resHideLin.size + resHideTipo.size;
+
+  let html = '<div class="res-bar">' +
+    '<span class="lbl">🧮 Resumen matriz</span>' +
+    '<label title="Ocultar los productos que ningún cliente pidió"><input type="checkbox" id="res-vacios" ' + (resOcultarVacios?'checked':'') + ' onchange="resOcultarVacios=this.checked;renderResumen()"> Ocultar vacíos</label>' +
+    '<button class="res-btn" onclick="contraerTodoRes()">⤢ Contraer todo</button>' +
+    '<button class="res-btn" onclick="expandirTodoRes()">⤡ Expandir todo</button>' +
+    '<button class="res-btn" onclick="copiarResumen()" title="Copiar la tabla visible con el separador elegido">📋 Copiar resumen</button>' +
+    '<button class="res-btn" ' + (nOcultos?'':'disabled') + ' onclick="toggleOcultosPanel()">👁 Ocultos (' + nOcultos + ')</button>' +
+    '<span class="res-info">' + clis.length + ' clientes · ' + prods.length + ' productos · ' + nLin + ' líneas · ' + nTipos + ' tipos</span>' +
+    '</div>';
+
+  /* panel de grupos ocultos (siempre presente, se muestra/oculta) */
+  html += '<div id="res-ocultos" class="res-ocultos' + (resPanelOcultos && nOcultos ? '' : ' hidden') + '">';
+  html += '<div class="res-oc-head">Grupos ocultos (' + nOcultos + ') <button class="close-x" onclick="toggleOcultosPanel()">✕</button></div>';
+  html += '<div id="res-ocultos-list">' + ocultosListHTML() + '</div>';
+  html += '</div>';
+
+  if(!clis.length || !prods.length){
+    el.innerHTML = html + '<div class="empty">No hay datos para armar el resumen.</div>';
+    return;
+  }
+
+  const cols = resModeloCols(prods);
+
+  /* Cabecera de LÍNEA (grupo superior) por runs de columnas */
+  const linCells = [];
+  let i = 0;
+  while(i < cols.length){
+    const c = cols[i];
+    if(c.kind === 'linColl'){ linCells.push({lin:c.lin, colspan:1, collapsed:true}); i++; continue; }
+    let j = i;
+    while(j < cols.length && cols[j].kind !== 'linColl' && cols[j].lin === c.lin) j++;
+    linCells.push({lin:c.lin, colspan:j-i, collapsed:false});
+    i = j;
+  }
+
+  /* Cabecera de TIPO (subgrupo) por runs de columnas */
+  const tipoCells = [];
+  i = 0;
+  while(i < cols.length){
+    const c = cols[i];
+    if(c.kind === 'linColl'){ tipoCells.push({empty:true, colspan:1}); i++; continue; }
+    if(c.kind === 'tipoColl'){ tipoCells.push({lin:c.lin, tipo:c.tipo, colspan:1, collapsed:true}); i++; continue; }
+    let j = i;
+    while(j < cols.length && cols[j].kind === 'prod' && cols[j].lin === c.lin && cols[j].tipo === c.tipo) j++;
+    tipoCells.push({lin:c.lin, tipo:c.tipo, colspan:j-i, collapsed:false});
+    i = j;
+  }
+
+  html += '<div class="matrix-wrap"><table class="matrix"><thead>';
+
+  /* fila LÍNEA (grupo superior) — clic contrae/despliega, ✕ oculta */
+  html += '<tr class="row-grp"><th class="cli-col" rowspan="3">CLIENTE</th>';
+  linCells.forEach(t=>{
+    const ind = t.collapsed ? '▸' : '▾';
+    const tip = t.collapsed ? 'Clic para expandir' : 'Clic para contraer';
+    html += '<th class="grp-lin" colspan="' + t.colspan + '" onclick="toggleLinRes(\'' + resArg(t.lin) + '\')" title="' + tip + '">' + esc(t.lin.toUpperCase()) +
+      ' <span class="grp-ind">' + ind + '</span>' +
+      '<button class="grp-hide" onclick="event.stopPropagation();hideLinRes(\'' + resArg(t.lin) + '\')" title="Ocultar esta línea">✕</button></th>';
+  });
+  html += '<th class="tot-col" rowspan="3">TOTAL</th></tr>';
+
+  /* fila TIPO (subgrupo) — clic contrae/despliega, ✕ oculta */
+  html += '<tr class="row-sub">';
+  tipoCells.forEach(t=>{
+    if(t.empty){ html += '<th colspan="' + t.colspan + '"></th>'; return; }
+    const key = t.lin + '||' + t.tipo;
+    const ind = t.collapsed ? '▸' : '▾';
+    const tip = t.collapsed ? 'Clic para expandir' : 'Clic para contraer';
+    html += '<th class="grp-tipo" colspan="' + t.colspan + '" onclick="toggleTipoRes(\'' + resArg(key) + '\')" title="' + tip + '">' + esc(t.tipo) +
+      ' <span class="grp-ind">' + ind + '</span>' +
+      '<button class="grp-hide" onclick="event.stopPropagation();hideTipoRes(\'' + resArg(key) + '\')" title="Ocultar este tipo">✕</button></th>';
+  });
+  html += '</tr>';
+
+  /* fila PRODUCTO */
+  html += '<tr class="row-prod">';
+  cols.forEach(c=>{
+    if(c.kind === 'prod'){
+      html += '<th class="th-prod" title="' + esc(c.art) + ' · ' + esc(c.cod) + '"><div class="ph-art">' + esc(c.art) + '</div><div class="ph-cod">' + esc(c.cod) + '</div></th>';
+    } else {
+      html += '<th class="th-prod"></th>';
+    }
+  });
+  html += '</tr></thead><tbody>';
+
+  /* filas de clientes */
+  clis.forEach(c=>{
+    const p = data[c];
+    const items = p.items || {};
+    html += '<tr><td class="cli-col">' + esc(p.nombreCliente||c) + ' <span class="cod">' + esc(c) + '</span></td>';
+    cols.forEach(col=>{
+      if(col.kind === 'prod'){
+        const it = items[col.cod];
+        const cant = it ? (it.cantidad||0) : 0;
+        html += '<td class="num-cell' + (cant?'':' zero') + '">' + (cant?cant:'') + '</td>';
+      } else {
+        html += '<td class="num-cell zero"></td>';
+      }
+    });
+    const uni = Object.keys(items).reduce((s,k)=>s+(items[k].cantidad||0),0);
+    html += '<td class="num-cell tot-col">' + uni + '</td></tr>';
+  });
+
+  /* fila TOTAL */
+  html += '<tr class="tot-row"><td class="cli-col">TOTAL</td>';
+  cols.forEach(col=>{
+    if(col.kind === 'prod'){
+      const t = totPorProd[col.cod]||0;
+      html += '<td class="num-cell tot-col' + (t?'':' zero') + '">' + (t?t:'') + '</td>';
+    } else {
+      html += '<td class="num-cell tot-col zero"></td>';
+    }
+  });
+  const grand = Object.values(totPorProd).reduce((s,v)=>s+v,0);
+  html += '<td class="num-cell tot-col">' + grand + '</td></tr>';
+
+  html += '</tbody></table></div>';
+  html += '<p style="font-size:11.5px;color:var(--text-mute);margin-top:8px">💡 Clic en una <b>LÍNEA</b> (grupo superior) o un <b>TIPO</b> (subgrupo) para contraer/desplegar · <b>✕</b> oculta el grupo (botón "Ocultos" lo restaura) · "Ocultar vacíos" esconde productos sin pedidos · "Copiar resumen" copia la tabla visible con el separador elegido · la columna <b>CLIENTE</b> (izquierda) y la de <b>TOTAL</b> (derecha) quedan congeladas al desplazar.</p>';
+
+  el.innerHTML = html;
+
+  /* Congelado visual: sombra en el borde de la columna congelada al desplazar. */
+  const wrap = el.querySelector('.matrix-wrap');
+  if(wrap){
+    const sync = ()=>{
+      wrap.classList.toggle('scrolled-h', wrap.scrollLeft > 0);
+      wrap.classList.toggle('scrolled-hr', wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 1);
+    };
+    sync();
+    wrap.addEventListener('scroll', sync, {passive:true});
+  }
+}
+
+/* ---- colapsar / desplegar ---- */
+function toggleLinRes(lin){
+  if(resColLin.has(lin)) resColLin.delete(lin); else resColLin.add(lin);
+  renderResumen();
+}
+function toggleTipoRes(key){
+  if(resColTipo.has(key)) resColTipo.delete(key); else resColTipo.add(key);
+  renderResumen();
+}
+function contraerTodoRes(){
+  const prods = resListaProds(resTotalesPorProd());
+  resColTipo.clear(); resColLin.clear();
+  prods.forEach(p=> resColLin.add(p.lin));   /* contraer todos los grupos superiores (LÍNEA) */
+  renderResumen();
+}
+function expandirTodoRes(){
+  resColTipo.clear(); resColLin.clear();
+  renderResumen();
+}
+
+/* ---- ocultar / mostrar grupos ---- */
+function hideLinRes(lin){
+  resHideLin.add(lin);
+  renderResumen();
+}
+function hideTipoRes(key){
+  resHideTipo.add(key);
+  renderResumen();
+}
+function showLinRes(lin){
+  resHideLin.delete(lin);
+  renderResumen();
+}
+function showTipoRes(key){
+  resHideTipo.delete(key);
+  renderResumen();
+}
+function toggleOcultosPanel(){
+  resPanelOcultos = !resPanelOcultos;
+  renderResumen();
+}
+
+/* ---- copiar / exportar la tabla visible ---- */
+/* Construye las filas (matriz expandida, respetando ocultos/vacíos/filtro).
+   Devuelve {rows, nombre} o null si no hay nada. */
+function resFilasCSV(){
+  const totPorProd = resTotalesPorProd();
+  const prods = resListaProds(totPorProd);   // ya excluye ocultos, vacíos y filtro
+  const q = qn();
+  let clis = Object.keys(data);
+  if(q) clis = clis.filter(c=>{
+    const p = data[c];
+    const txt = norm((p.nombreCliente||'') + ' ' + c + ' ' + Object.values(p.items||{}).map(i=>i.ARTICULO||'').join(' '));
+    return txt.includes(q);
+  });
+  clis.sort((a,b)=> (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
+  if(!clis.length || !prods.length) return null;
+
+  /* 3 filas de cabecera: LÍNEA / TIPO / PRODUCTO */
+  const h1 = ['CLIENTE'], h2 = [''], h3 = [''];
+  prods.forEach(p=>{
+    h1.push(p.lin);
+    h2.push(p.tipo);
+    h3.push(p.art + ' (' + p.cod + ')');
+  });
+  h1.push('TOTAL'); h2.push(''); h3.push('');
+
+  const rows = [h1, h2, h3];
+  clis.forEach(c=>{
+    const p = data[c];
+    const items = p.items || {};
+    const row = [p.nombreCliente || c];
+    let uni = 0;
+    prods.forEach(col=>{
+      const it = items[col.cod];
+      const cant = it ? (it.cantidad||0) : 0;
+      row.push(cant);
+      uni += cant;
+    });
+    row.push(uni);
+    rows.push(row);
+  });
+  /* fila de totales */
+  const tr = ['TOTAL'];
+  let grand = 0;
+  prods.forEach(col=>{
+    const t = totPorProd[col.cod]||0;
+    tr.push(t);
+    grand += t;
+  });
+  tr.push(grand);
+  rows.push(tr);
+
+  return {rows: rows, nombre: 'resumen_' + selFecha + '.csv'};
+}
+
+/* Copia la tabla visible al portapapeles con el separador elegido (#csv-del). */
+function copiarResumen(){
+  const r = resFilasCSV();
+  if(!r){ toast('Nada que copiar'); return; }
+  const txt = csvDesdeFilas(r.rows);   /* sin BOM para portapapeles */
+  const nProd = r.rows[0].length - 2;  /* CLIENTE + TOTAL */
+  const nCli = r.rows.length - 4;      /* 3 cabeceras + 1 total */
+  const done = ()=> toast('📋 Resumen copiado: ' + nCli + ' clientes · ' + nProd + ' productos · separador ' + nombreDelimitador());
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
+  } else {
+    fallbackCopiar(txt, done);
+  }
 }
 
 /* ===== POR CLIENTE ===== */
@@ -1002,6 +1442,11 @@ function guardarDelimitador(){
 /* Construye las filas del CSV según la pestaña activa (null si no hay nada) */
 function construirFilasCSV(){
   const q = qn();
+  if(tab === 'res'){
+    const r = resFilasCSV();
+    if(!r){ toast('Nada que exportar'); return null; }
+    return r;
+  }
 
   if(tab === 'cons'){
     /* Mantiene el orden por línea (coherente con la vista) */
