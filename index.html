@@ -290,6 +290,41 @@ body.dark .qhelp-btn:hover{background:rgba(0,0,0,.55)}
 .item .add-btn{width:38px;height:30px;background:var(--green);color:#fff;font-size:15px;font-weight:700;flex-shrink:0}
 .item.frec .add-btn{background:var(--orange)}
 
+/* ====== PROGRAMACIÓN DE PEDIDOS (fecha de pedido) ====== */
+#programar-box{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.prog-row{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap}
+.prog-row label{font-size:12.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.3px}
+#jornada-input{padding:7px 10px;border:1px solid var(--border-input);border-radius:8px;background:var(--input-bg);color:var(--text);font-size:13.5px;font-family:inherit;font-weight:600}
+#jornada-input:focus{outline:none;border-color:var(--green)}
+.prog-hoy{background:var(--green-soft);color:var(--green-soft-txt);border:1px solid var(--green-border);padding:7px 12px;font-size:12.5px;font-weight:700;border-radius:8px}
+.prog-hoy:hover{filter:brightness(.96)}
+.aviso-programado{background:var(--blue-soft);color:var(--blue-txt);font-size:12.5px;font-weight:700;padding:10px 14px;line-height:1.55;border-top:1px solid var(--border)}
+.prog-lista{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:0 14px 10px}
+.prog-lista .prog-tit{font-size:11.5px;font-weight:700;color:var(--text-soft);text-transform:uppercase;letter-spacing:.3px}
+.prog-chip{background:var(--blue-soft);color:var(--blue-txt);border:1px solid var(--blue-txt);padding:5px 11px;font-size:12px;font-weight:700;border-radius:20px}
+.prog-chip:hover{filter:brightness(.96)}
+.prog-chip.activo{background:var(--blue-txt);color:var(--panel)}
+.qprog{display:inline-block;font-size:10px;font-weight:700;line-height:1.5;color:var(--blue-txt);background:var(--blue-soft);border:1px solid var(--blue-txt);border-radius:5px;padding:0 4px;margin-left:5px;vertical-align:middle;cursor:help}
+#programar-box.programado{border-color:var(--blue-txt)}
+#programar-box.programado .prog-row{background:var(--blue-soft)}
+#programar-box.programado .prog-row label{color:var(--blue-txt)}
+
+/* Panel de pedido en modo programado: se distingue del pedido de hoy */
+#quick-box.programado{border-color:var(--blue-txt)}
+#quick-box.programado .quick-head{background:var(--blue-soft);color:var(--blue-txt)}
+#quick-box.programado .quick-head small{color:var(--blue-txt);opacity:.85}
+#quick-box.programado .quick-tools{background:var(--blue-soft)}
+#quick-box.programado .qcol{border-color:var(--blue-txt)}
+#quick-box.programado .qcol-title{background:var(--blue-soft);color:var(--blue-txt)}
+#quick-box.programado .qcol-title small{color:var(--blue-txt)}
+#quick-box.programado .qrow.filled{box-shadow:inset 3px 0 0 var(--blue-txt)}
+#quick-box.programado .qin:focus{border-color:var(--blue-txt)}
+#quick-box.programado .qhelp-btn{border-color:var(--blue-txt);color:var(--blue-txt)}
+#quick-add.programado{background:var(--blue-txt);color:var(--panel)}
+#quick-add.programado:disabled{background:var(--btn-dis-bg);color:#fff;animation:none}
+#quick-add.programado.pendiente{background:var(--blue-txt);animation:pulseBlue 1.2s infinite}
+@keyframes pulseBlue{0%,100%{box-shadow:0 0 0 0 rgba(58,110,190,.55)}50%{box-shadow:0 0 0 9px rgba(58,110,190,0)}}
+
 /* TOAST */
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-txt);padding:12px 22px;border-radius:30px;font-size:14px;z-index:200;opacity:0;transition:.3s;pointer-events:none;max-width:92vw;text-align:center}
 #toast.show{opacity:1}
@@ -358,6 +393,17 @@ body.dark .qhelp-btn:hover{background:rgba(0,0,0,.55)}
     <div class="search-wrap" id="search-wrap">
       <input id="search" placeholder="🔍 Buscar por nombre, código, tipo o línea..." oninput="onSearch()" autocomplete="off">
       <button type="button" class="search-clear" title="Limpiar búsqueda" onclick="limpiarBusqueda()">✕</button>
+    </div>
+
+    <!-- FECHA DE PEDIDO / PEDIDOS PROGRAMADOS -->
+    <div id="programar-box">
+      <div class="prog-row">
+        <label for="jornada-input">📅 Fecha de pedido</label>
+        <input type="date" id="jornada-input" onchange="onCambioFecha()" title="Elija el día para el que quiere el pedido (hasta 30 días)">
+        <button type="button" id="btn-hoy" class="prog-hoy hidden" onclick="volverAHoy()">↩ Volver a hoy</button>
+      </div>
+      <div id="prog-lista" class="prog-lista hidden"></div>
+      <div id="aviso-programado" class="aviso-programado hidden"></div>
     </div>
 
     <!-- PANEL DE PEDIDO -->
@@ -461,6 +507,7 @@ let compras = [], comprasSet = new Set();
 let arbol = {}, lineasOrden = [];
 let abiertasManual = new Set();
 let pedidoHoy = null;
+let jornadaManual = null;      // null = jornada automática · 'YYYY-MM-DD' = pedido programado
 let verTodos = false;
 let desbloqTimer = null;
 
@@ -529,18 +576,19 @@ async function flushPendientes(silencioso){
   for(let i = q.length - 1; i >= 0; i--){
     const p = q[i];
     try{
-      await Promise.all([
-        db.ref('PEDIDOS/Pedidos/' + p.jornada + '/' + CLIENTE).set(p),
-        db.ref('PEDIDOS/Ultimos/' + CLIENTE).set(p)
-      ]);
+      const tareas = [db.ref('PEDIDOS/Pedidos/' + p.jornada + '/' + CLIENTE).set(p)];
+      if(p.jornada === calcularJornada()) tareas.push(db.ref('PEDIDOS/Ultimos/' + CLIENTE).set(p));
+      await Promise.all(tareas);
       Object.keys(p.items || {}).forEach(c=>{
         db.ref('PEDIDOS/Frecuentes/' + CLIENTE + '/' + c).set(true).catch(()=>{});
       });
       quitarDeCola(i);
+      if(p.jornada !== calcularJornada()) registrarProgramado(p.jornada);
       enviados++;
     }catch(e){ errores++; }
   }
   if(enviados && !silencioso) toast('✔ ' + enviados + ' pedido(s) pendiente(s) enviado(s) correctamente');
+  if(enviados) actualizarSelectorFecha();
   if(errores) toast('⚠ ' + errores + ' pedido(s) aún sin enviar — se reintentará');
   actualizarBanner();
 }
@@ -569,14 +617,16 @@ window.addEventListener('offline', ()=>{ offline = true; actualizarBanner(); });
 /* ============================================================
    3) JORNADA + BLOQUEO
 ============================================================ */
-function calcularJornada(){
-  const d = new Date();
+/* Jornada que correspondía en un momento dado (hora de corte + fin de semana) */
+function jornadaEn(ts){
+  const d = new Date(ts);
   if(HORA_CORTE !== null && d.getHours() >= HORA_CORTE) d.setDate(d.getDate() + 1);
   /* Fin de semana: sábado y domingo → jornada del domingo; lunes → pedido nuevo */
   if(FINDE_DOMINGO && d.getDay() === 6) d.setDate(d.getDate() + 1);
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
+function calcularJornada(){ return jornadaEn(Date.now()); }
 function formatearJornada(iso){
   const [y,m,d] = iso.split('-').map(Number);
   return new Date(y, m-1, d).toLocaleDateString('es-ES',
@@ -587,6 +637,227 @@ function fechaLocalISO(){
   const p = n => String(n).padStart(2,'0');
   return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
 }
+
+/* ============================================================
+   3.B) PEDIDOS PROGRAMADOS — jornada activa
+   La jornada activa es la automática (hoy/mañana) salvo que el
+   cliente elija una fecha futura: entonces el pedido se guarda
+   en PEDIDOS/Pedidos/{esa fecha}/{CLIENTE}.
+============================================================ */
+const DIAS_MAX_PROGRAMAR = 30;
+
+function jornadaActiva(){ return jornadaManual || calcularJornada(); }
+function esProgramado(){ return jornadaActiva() !== calcularJornada(); }
+function claveCarrito(j){ return 'carrito_' + CLIENTE + '_' + j; }
+function claveObs(j){ return 'obs_' + CLIENTE + '_' + j; }
+
+function fechaMasDias(dias){
+  const d = new Date();
+  d.setDate(d.getDate() + dias);
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
+/* Jornada que corresponde a una fecha concreta (aplica la regla de fin de semana:
+   sábado y domingo comparten la jornada del domingo). */
+function jornadaDeFecha(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(y, m-1, d);
+  if(FINDE_DOMINGO && dt.getDay() === 6) dt.setDate(dt.getDate() + 1);
+  const p = n => String(n).padStart(2,'0');
+  return dt.getFullYear() + '-' + p(dt.getMonth()+1) + '-' + p(dt.getDate());
+}
+
+/* Fecha (YYYY-MM-DD) de un timestamp */
+function fechaDeTs(ts){
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+}
+
+/* ¿Este pedido guardado se cargó con anticipación? (se creó antes de su jornada) */
+function esPedidoProgramado(p){
+  if(!p || !p.jornada || !p.ts) return false;
+  return p.jornada > jornadaDeFecha(fechaDeTs(p.ts));
+}
+
+/* Fecha y hora cortas de creación: "23/11 11:32" */
+function fechaCortaTs(ts){
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2,'0');
+  return p(d.getDate()) + '/' + p(d.getMonth()+1) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+
+/* Carritos antiguos (una sola clave) → una clave por jornada */
+function migrarCarritoLegacy(){
+  if(!CLIENTE) return;
+  try{
+    const leg = localStorage.getItem('carrito_' + CLIENTE);
+    if(!leg) return;
+    const f = localStorage.getItem('carrito_fecha_' + CLIENTE) || calcularJornada();
+    if(!localStorage.getItem(claveCarrito(f))) localStorage.setItem(claveCarrito(f), leg);
+    const lo = localStorage.getItem('obs_' + CLIENTE);
+    if(lo && !localStorage.getItem(claveObs(f))) localStorage.setItem(claveObs(f), lo);
+    localStorage.removeItem('carrito_' + CLIENTE);
+    localStorage.removeItem('carrito_fecha_' + CLIENTE);
+    localStorage.removeItem('obs_' + CLIENTE);
+  }catch(e){}
+}
+
+/* Borra los borradores de jornadas ya pasadas */
+function limpiarCarritosViejos(){
+  if(!CLIENTE) return;
+  const hoy = calcularJornada();
+  const pref = 'carrito_' + CLIENTE + '_';
+  const prefObs = 'obs_' + CLIENTE + '_';
+  try{
+    Object.keys(localStorage).forEach(k=>{
+      if(k.indexOf(pref) !== 0) return;
+      const j = k.slice(pref.length);
+      if(/^\d{4}-\d{2}-\d{2}$/.test(j) && j < hoy){
+        localStorage.removeItem(k);
+        localStorage.removeItem(prefObs + j);
+      }
+    });
+  }catch(e){}
+}
+
+/* Registro local de pedidos programados: sirve de recordatorio y de acceso rápido */
+function progKey(){ return 'prog_' + CLIENTE; }
+function listaProgramados(){
+  if(!CLIENTE) return [];
+  const hoy = calcularJornada(), max = fechaMasDias(DIAS_MAX_PROGRAMAR);
+  const arr = (leerLS(progKey()) || [])
+    .filter(j=>typeof j === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(j) && j >= hoy && j <= max);
+  return [...new Set(arr)].sort();
+}
+function guardarListaProgramados(arr){ escribirLS(progKey(), [...new Set(arr)].sort()); }
+function registrarProgramado(j){
+  if(!CLIENTE || !j || j === calcularJornada()) return;
+  guardarListaProgramados(listaProgramados().concat([j]));
+}
+function olvidarProgramado(j){
+  if(!CLIENTE) return;
+  guardarListaProgramados(listaProgramados().filter(x=>x !== j));
+}
+function formatearCorta(iso){
+  const [y,m,d] = iso.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleDateString('es-ES',{weekday:'short', day:'2-digit', month:'2-digit'});
+}
+async function irAJornada(iso){
+  await cambiarJornada(iso === calcularJornada() ? null : iso);
+}
+function renderListaProgramados(){
+  const box = document.getElementById('prog-lista');
+  if(!box) return;
+  const lista = listaProgramados();
+  box.classList.toggle('hidden', !lista.length);
+  if(!lista.length){ box.innerHTML = ''; return; }
+  const act = jornadaActiva();
+  box.innerHTML = '<span class="prog-tit">🗓 Programados:</span>' + lista.map(j=>
+    `<button type="button" class="prog-chip${j === act ? ' activo' : ''}" onclick="irAJornada('${j}')" ` +
+    `title="Ir al pedido programado del ${esc(formatearJornada(j))}">${esc(formatearCorta(j))}</button>`
+  ).join('');
+}
+
+/* Pinta el selector de fecha y el aviso de "pedido programado" */
+function actualizarSelectorFecha(){
+  const inp = document.getElementById('jornada-input');
+  if(!inp) return;
+  const hoy = calcularJornada();
+  const prog = esProgramado();
+  const origen = !prog && esPedidoProgramado(pedidoHoy);   // programado que ya llegó a su fecha
+  inp.min = hoy;
+  inp.max = fechaMasDias(DIAS_MAX_PROGRAMAR);
+  inp.value = jornadaActiva();
+
+  document.getElementById('btn-hoy').classList.toggle('hidden', !prog);
+  document.getElementById('programar-box').classList.toggle('programado', prog || origen);
+  document.getElementById('quick-box').classList.toggle('programado', prog || origen);
+
+  const aviso = document.getElementById('aviso-programado');
+  aviso.classList.toggle('hidden', !prog && !origen);
+  if(prog){
+    aviso.innerHTML = '🗓 <b>PEDIDO PROGRAMADO</b> — no es el pedido de hoy (' + esc(formatearJornada(hoy)) + ').<br>' +
+      'Se guardará para el <b>' + esc(formatearJornada(jornadaActiva())) + '</b>. ' +
+      'Para volver al pedido de hoy use «↩ Volver a hoy».';
+  } else if(origen){
+    aviso.innerHTML = '🗓 <b>ESTE PEDIDO FUE PROGRAMADO</b> el ' + esc(fechaCortaTs(pedidoHoy.ts)) +
+      ' para la jornada de hoy.<br>Revise las cantidades y confirme para mantenerlo, o anúlelo si ya no lo necesita.';
+  } else {
+    aviso.innerHTML = '';
+  }
+  renderListaProgramados();
+}
+
+async function onCambioFecha(){
+  const inp = document.getElementById('jornada-input');
+  if(!inp) return;
+  const v = inp.value;
+  const hoy = calcularJornada();
+  const max = fechaMasDias(DIAS_MAX_PROGRAMAR);
+  if(!v){ actualizarSelectorFecha(); return; }
+  if(v > max){
+    toast('⚠ Solo puede programar hasta ' + formatearJornada(max));
+    actualizarSelectorFecha(); return;
+  }
+  /* Sábado y domingo comparten la jornada del domingo */
+  const destino = jornadaDeFecha(v);
+  if(destino < hoy){
+    toast('⚠ Esa fecha ya pasó — se mantiene la jornada actual');
+    actualizarSelectorFecha(); return;
+  }
+  await cambiarJornada(destino === hoy ? null : destino);
+}
+
+async function volverAHoy(){ await cambiarJornada(null); }
+
+async function cambiarJornada(iso){
+  if(!CLIENTE) return;
+  const destino = iso || calcularJornada();
+  if(destino === jornadaActiva()){ actualizarSelectorFecha(); return; }
+  saveCart(); guardarObsLS();          // guarda el borrador de la jornada que se deja
+  jornadaManual = (destino === calcularJornada()) ? null : destino;
+  obsExpandir.clear();
+  await cargarJornadaActiva();
+  const borrador = !pedidoHoy && Object.keys(carrito).length;
+  toast(esProgramado()
+    ? '🗓 Programando para ' + formatearJornada(jornadaActiva()) +
+      (borrador ? ' — se recuperó su borrador guardado' : '')
+    : '📅 Volvió al pedido de hoy' +
+      (borrador ? ' — se recuperó su borrador guardado' : ''));
+}
+
+/* Carga carrito + pedido guardado de la jornada activa */
+async function cargarJornadaActiva(){
+  const j = jornadaActiva();
+  carrito = leerLS(claveCarrito(j)) || {};
+  obsCarrito = leerLS(claveObs(j)) || {};
+
+  pedidoHoy = null;
+  if(offline || !hayConexion()){
+    const q = pendientes().filter(p=>p.jornada === j);
+    pedidoHoy = q.length ? q[q.length-1] : null;
+  } else {
+    try{
+      const s = await db.ref('PEDIDOS/Pedidos/' + j + '/' + CLIENTE).once('value');
+      pedidoHoy = s.val();
+    }catch(e){ pedidoHoy = null; }
+  }
+
+  if(pedidoHoy && pedidoHoy.items && Object.keys(pedidoHoy.items).length){
+    carrito = {};
+    obsCarrito = {};
+    Object.keys(pedidoHoy.items).forEach(c=>{
+      carrito[c] = pedidoHoy.items[c].cantidad || 1;
+      if(pedidoHoy.items[c].obs) obsCarrito[c] = pedidoHoy.items[c].obs;
+    });
+  }
+
+  saveCart(); guardarObsLS();
+  renderQuick(); refreshItemStates(); updateQuickBar(); actualizarSelectorFecha();
+}
+
 
 function estaBloqueado(bloq){
   if(!bloq || !bloq.descarga) return false;
@@ -725,6 +996,7 @@ function logout(){
   CLIENTE = null; NOMBRE_CLIENTE = '';
   if(desbloqTimer){ clearTimeout(desbloqTimer); desbloqTimer = null; }
   localStorage.removeItem('pedidos_cliente');
+  jornadaManual = null;
   obsCarrito = {};
   obsExpandir.clear();
   document.getElementById('app-screen').classList.add('hidden');
@@ -747,6 +1019,8 @@ async function startApp(){
   document.getElementById('client-name').textContent = NOMBRE_CLIENTE;
   document.getElementById('client-code').textContent = 'Código: ' + CLIENTE;
   verTodos = false;
+  jornadaManual = null;              // siempre se abre en la jornada automática
+  limpiarCarritoSiCambioJornada();   // migra carrito antiguo y borra borradores vencidos
   offline = !hayConexion();
   actualizarBanner();
 
@@ -769,11 +1043,11 @@ async function startApp(){
     compras = [...new Set([...ventasList, ...extraList])].filter(c=>!excluidosSet.has(c));
     comprasSet = new Set(compras);
 
-    const q = pendientes();
+    const q = pendientes().filter(p=>p.jornada === jornadaActiva());
     pedidoHoy = q.length ? q[q.length-1] : null;
     limpiarCarritoSiCambioJornada();
-    carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
-    cargarObsLS();
+    carrito = leerLS(claveCarrito(jornadaActiva())) || {};
+    obsCarrito = leerLS(claveObs(jornadaActiva())) || {};
     if(pedidoHoy && pedidoHoy.items){
       obsCarrito = {};
       Object.keys(pedidoHoy.items).forEach(c=>{
@@ -786,6 +1060,7 @@ async function startApp(){
     renderCatalogo();
     renderQuick();
     refreshItemStates();
+    actualizarSelectorFecha();
     document.getElementById('search').value = '';
     document.getElementById('search-wrap').classList.remove('has-text');
     document.getElementById('cat-count').textContent =
@@ -803,7 +1078,7 @@ async function startApp(){
       db.ref('PEDIDOS/Ventas').once('value'),
       db.ref('PEDIDOS/Frecuentes/' + CLIENTE).once('value'),
       db.ref('PEDIDOS/Excluidos/' + CLIENTE).once('value'),
-      db.ref('PEDIDOS/Pedidos/' + calcularJornada() + '/' + CLIENTE).once('value'),
+      db.ref('PEDIDOS/Pedidos/' + jornadaActiva() + '/' + CLIENTE).once('value'),
       db.ref('PEDIDOS/Bloqueo').once('value'),
       db.ref('PEDIDOS/Clientes/' + CLIENTE).once('value'),
       db.ref('PEDIDOS/Claves/' + CLIENTE).once('value').catch(()=>({ val: () => null }))
@@ -837,8 +1112,8 @@ async function startApp(){
     } else {
       pedidoHoy = null;
       limpiarCarritoSiCambioJornada();
-      carrito = JSON.parse(localStorage.getItem('carrito_' + CLIENTE) || '{}');
-      cargarObsLS();
+      carrito = leerLS(claveCarrito(jornadaActiva())) || {};
+      obsCarrito = leerLS(claveObs(jornadaActiva())) || {};
     }
 
     if(estaBloqueado(sBloq.val())){
@@ -851,6 +1126,7 @@ async function startApp(){
     renderCatalogo();
     renderQuick();
     refreshItemStates();
+    actualizarSelectorFecha();
     document.getElementById('search').value = '';
     document.getElementById('search-wrap').classList.remove('has-text');
     document.getElementById('cat-count').textContent =
@@ -1059,7 +1335,12 @@ function pintarMarcador(row){
   else if(e==='nuevo'){ m.className='qsave nuevo'; m.textContent='●'; m.title='Nuevo: aún no está guardado en su pedido'; }
   else if(e==='cambio'){ m.className='qsave cambio'; m.textContent='●'; m.title='Cantidad modificada: aún no guardada'; }
   else if(e==='eliminado'){ m.className='qsave eliminado'; m.textContent='●'; m.title='Pendiente de eliminación (no guardado aún)'; }
-  else { m.className='qsave ok'; m.textContent='✔'; m.title='Guardado'; }
+  else {
+    m.className='qsave ok'; m.textContent='✔';
+    m.title = esPedidoProgramado(pedidoHoy)
+      ? 'Guardado — pedido programado el ' + fechaCortaTs(pedidoHoy.ts)
+      : 'Guardado';
+  }
 }
 
 /* ============================================================
@@ -1083,9 +1364,15 @@ function abrirAyudaPedido(){
       '<li>Use <b>🔄 Repetir último pedido</b> para cargar de una sola vez lo del pedido anterior.</li>' +
       '<li>El buscador de arriba filtra esta lista y también el catálogo; con <b>✕</b> se limpia.</li>';
   document.getElementById('help-body').innerHTML =
-    '<ul>' + pasos + '</ul>' +
-    '<div class="help-leyenda"><b>Estados del artículo:</b> ○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar · 💬 observación</div>' +
-    '<div class="help-jornada">📅 Recepción: ' + formatearJornada(calcularJornada()) + '</div>';
+    '<ul>' + pasos +
+      '<li>Arriba, en <b>📅 Fecha de pedido</b>, puede <b>programar el pedido</b> para otro día ' +
+      '(hasta 30 días). Si elige una fecha futura, el panel se marca en azul y avisa ' +
+      '<b>«PEDIDO PROGRAMADO»</b> para no confundirlo con el pedido de hoy.</li>' +
+    '</ul>' +
+    '<div class="help-leyenda"><b>Estados del artículo:</b> ○ sin cargar · ● cambio sin guardar · ✔ guardado · tachado = por eliminar · 💬 observación · <span class="qprog">🗓</span> = cantidad que viene de un pedido programado</div>' +
+    '<div class="help-jornada">📅 ' + (esProgramado() ? 'PEDIDO PROGRAMADO para el ' : 'Recepción: ') +
+      formatearJornada(jornadaActiva()) +
+      (esProgramado() ? ' (no es el pedido de hoy)' : '') + '</div>';
   document.getElementById('help-overlay').classList.remove('hidden');
 }
 function cerrarAyuda(){
@@ -1101,13 +1388,17 @@ function renderQuick(){
 
   const sesionBase = !!(pedidoHoy && Object.keys(carrito).length);
   const modoSesion = sesionBase && !verTodos;
+  const progOrigen = esPedidoProgramado(pedidoHoy);
 
   document.getElementById('quick-title').innerHTML =
     '<span class="qt-top">' + (modoSesion ? '📝 Su pedido en curso' : '⭐ Su pedido — habituales por línea') +
     '<button type="button" class="qhelp-btn" title="¿Cómo funciona? Ver ayuda" onclick="abrirAyudaPedido()">?</button></span>' +
     '<small class="qjornada" id="quick-jornada"></small>';
   document.getElementById('quick-jornada').textContent =
-    '📅 Recepción: ' + formatearJornada(calcularJornada());
+    (esProgramado()
+      ? '🗓 PEDIDO PROGRAMADO · '
+      : (progOrigen ? '🗓 Programado el ' + fechaCortaTs(pedidoHoy.ts) + ' · ' : '📅 Recepción: ')) +
+    formatearJornada(jornadaActiva());
 
   const btnVT = document.getElementById('btn-ver-todos');
   btnVT.classList.toggle('hidden', !sesionBase);
@@ -1184,6 +1475,10 @@ function renderQuick(){
       const obs = obsDe(a.CODART);
       const tieneObs = obs ? 'has-obs' : '';
       const expandida = obsExpandir.has(a.CODART) ? 'expanded' : '';
+      const deProg = progOrigen && pedidoHoy && pedidoHoy.items && pedidoHoy.items[a.CODART];
+      const chipProg = deProg
+        ? `<span class="qprog" title="Cantidad programada el ${esc(fechaCortaTs(pedidoHoy.ts))}">🗓</span>`
+        : '';
       html += `
       <div class="qrow ${v>0 ? 'filled' : ''} ${expandida}" data-cod="${esc(a.CODART)}">
         <span class="qsave vacio">○</span>
@@ -1191,7 +1486,7 @@ function renderQuick(){
         <div class="qinfo">
           <div class="qinfo-row">
             <div style="flex:1;min-width:0">
-              <div class="qname">${esc(a.ARTICULO)}</div>
+              <div class="qname">${esc(a.ARTICULO)}${chipProg}</div>
               <div class="qsub"><span class="cod">${esc(a.CODART)}</span> · ${esc(a.TIPO || '')}</div>
             </div>
             <button class="qtoggle ${tieneObs}" title="Observación para este artículo">💬</button>
@@ -1291,11 +1586,10 @@ function setQuickQty(cod, v){
 ============================================================ */
 function obsDe(cod){ return obsCarrito[cod] || ''; }
 function guardarObsLS(){
-  try{ localStorage.setItem('obs_' + CLIENTE, JSON.stringify(obsCarrito)); }catch(e){}
+  try{ localStorage.setItem(claveObs(jornadaActiva()), JSON.stringify(obsCarrito)); }catch(e){}
 }
 function cargarObsLS(){
-  try{ obsCarrito = JSON.parse(localStorage.getItem('obs_' + CLIENTE) || '{}'); }
-  catch(e){ obsCarrito = {}; }
+  obsCarrito = leerLS(claveObs(jornadaActiva())) || {};
 }
 function toggleObsTodas(){
   const filas = document.querySelectorAll('#quick-list .qrow:not(.eliminado)');
@@ -1357,11 +1651,16 @@ function updateQuickBar(){
   const btn = document.getElementById('quick-add');
   btn.disabled = arts === 0 && !pedidoHoy;
   btn.classList.toggle('pendiente', p.n > 0);
-  btn.textContent = (pedidoHoy ? '💾 ACTUALIZAR PEDIDO' : '✔ CONFIRMAR PEDIDO') +
-                    (p.n > 0 ? ' (' + p.n + ')' : '');
+  btn.classList.toggle('programado', esProgramado());
+  btn.textContent = (pedidoHoy
+      ? (esProgramado() ? '💾 ACTUALIZAR PROGRAMADO' : '💾 ACTUALIZAR PEDIDO')
+      : (esProgramado() ? '🗓 PROGRAMAR PEDIDO' : '✔ CONFIRMAR PEDIDO')) +
+    (p.n > 0 ? ' (' + p.n + ')' : '');
 
   document.getElementById('btn-csv').disabled = arts === 0;
-  document.getElementById('btn-anular').classList.toggle('hidden', !pedidoHoy);
+  const btnAnular = document.getElementById('btn-anular');
+  btnAnular.classList.toggle('hidden', !pedidoHoy);
+  btnAnular.textContent = esProgramado() ? '🗑 Anular este pedido programado' : '🗑 Anular mi pedido de hoy';
   document.getElementById('btn-quitar-todos').classList.toggle('hidden', comprasSet.size === 0);
 }
 
@@ -1423,7 +1722,7 @@ function exportarCSV(){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'pedido_' + CLIENTE + '_' + calcularJornada() + '.csv';
+  a.download = 'pedido_' + CLIENTE + '_' + jornadaActiva() + '.csv';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1541,11 +1840,13 @@ function setCatalogQty(cod, v){
   toast('✔ ' + (articulos[cod] ? articulos[cod].ARTICULO : cod) + ' — carrito: ' + v + ' (sin guardar)');
 }
 function refreshItemStates(){
+  const prog = esPedidoProgramado(pedidoHoy);
   document.querySelectorAll('.item').forEach(it=>{
     const cod = it.dataset.cod;
     const n = carrito[cod] || 0;
     const mark = it.querySelector('.cart-mark');
-    if(mark) mark.textContent = n > 0 ? ' · 🛒 ' + n : '';
+    const deProg = prog && pedidoHoy.items && pedidoHoy.items[cod];
+    if(mark) mark.textContent = n > 0 ? ' · 🛒 ' + n + (deProg ? ' 🗓' : '') : '';
     const inp = it.querySelector('.qty-row input');
     if(inp && document.activeElement !== inp) inp.value = n > 0 ? n : 1;
   });
@@ -1615,28 +1916,16 @@ function aplicarBusqueda(){
    13) CONFIRMAR / ANULAR
 ============================================================ */
 function saveCart(){
-  localStorage.setItem('carrito_'+CLIENTE, JSON.stringify(carrito));
-  localStorage.setItem('carrito_fecha_' + CLIENTE, calcularJornada());
+  localStorage.setItem(claveCarrito(jornadaActiva()), JSON.stringify(carrito));
 }
 
-/* Limpia el carrito y las obs si la jornada cambió (después de medianoche).
-   Así cada día arranca con un pedido en blanco, salvo que el cliente use
-   "Repetir último pedido" para traer el anterior. */
+/* Prepara el almacenamiento por jornada: migra el carrito antiguo y
+   borra los borradores de jornadas ya pasadas. */
 function limpiarCarritoSiCambioJornada(){
   if(!CLIENTE) return false;
-  const hoy = calcularJornada();
-  const fechaCarrito = localStorage.getItem('carrito_fecha_' + CLIENTE);
-  if(!fechaCarrito) return false;            // no había carrito previo
-  if(fechaCarrito === hoy) return false;     // mismo día, no tocar
-  // Cambió la jornada → limpiar
-  localStorage.removeItem('carrito_' + CLIENTE);
-  localStorage.removeItem('carrito_fecha_' + CLIENTE);
-  localStorage.removeItem('obs_' + CLIENTE);
-  carrito = {};
-  obsCarrito = {};
-  obsExpandir.clear();
-  toast('🆕 Nueva jornada — carrito reiniciado');
-  return true;
+  migrarCarritoLegacy();
+  limpiarCarritosViejos();
+  return false;
 }
 
 async function submitOrder(){
@@ -1644,7 +1933,8 @@ async function submitOrder(){
 
   if(!cods.length){
     if(pedidoHoy){
-      if(!confirm('Su carrito está vacío.\n\n¿Guardar el pedido vacío?\n(Equivale a ANULAR su pedido de hoy)')) return;
+      if(!confirm('Su carrito está vacío.\n\n¿Guardar el pedido vacío?\n(Equivale a ANULAR ' +
+          (esProgramado() ? 'el pedido programado' : 'su pedido de hoy') + ')')) return;
       await anularPedidoInterno();
       return;
     }
@@ -1652,7 +1942,8 @@ async function submitOrder(){
     return;
   }
 
-  const jornada = calcularJornada();
+  const jornada = jornadaActiva();
+  const programado = jornada !== calcularJornada();
   const items = {};
   cods.forEach(c=>{
     items[c] = {
@@ -1674,27 +1965,32 @@ async function submitOrder(){
   if(offline || !hayConexion()){
     encolar(payload);
     pedidoHoy = payload;
+    if(programado) registrarProgramado(jornada);
     cods.forEach(c=>{
       if(!comprasSet.has(c)){ comprasSet.add(c); compras.push(c); extraSet.add(c); }
     });
-    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner();
-    toast('📴 Guardado en este dispositivo — se enviará solo cuando haya internet');
+    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner(); actualizarSelectorFecha();
+    toast(programado
+      ? '📴 Pedido programado guardado en este dispositivo — se enviará al reconectar'
+      : '📴 Guardado en este dispositivo — se enviará solo cuando haya internet');
     return;
   }
 
   const btn = document.getElementById('quick-add');
   btn.disabled = true; btn.textContent = 'ENVIANDO...';
   try{
-    const sBloq = await db.ref('PEDIDOS/Bloqueo').once('value');
-    if(estaBloqueado(sBloq.val())){
-      activarBloqueo(sBloq.val());
-      return;
+    if(!programado){
+      const sBloq = await db.ref('PEDIDOS/Bloqueo').once('value');
+      if(estaBloqueado(sBloq.val())){
+        activarBloqueo(sBloq.val());
+        return;
+      }
     }
-    await Promise.all([
-      db.ref('PEDIDOS/Pedidos/' + jornada + '/' + CLIENTE).set(payload),
-      db.ref('PEDIDOS/Ultimos/' + CLIENTE).set(payload)
-    ]);
+    const tareas = [db.ref('PEDIDOS/Pedidos/' + jornada + '/' + CLIENTE).set(payload)];
+    if(!programado) tareas.push(db.ref('PEDIDOS/Ultimos/' + CLIENTE).set(payload));
+    await Promise.all(tareas);
     pedidoHoy = payload;
+    if(programado) registrarProgramado(jornada);
     cods.forEach(c=>{
       if(!comprasSet.has(c)){
         comprasSet.add(c); compras.push(c); extraSet.add(c);
@@ -1706,8 +2002,10 @@ async function submitOrder(){
       if(!carrito[c]) delete obsCarrito[c];
     });
     guardarObsLS();
-    renderQuick(); refreshItemStates();
-    toast('✔ Pedido guardado — jornada del ' + formatearJornada(jornada));
+    renderQuick(); refreshItemStates(); actualizarSelectorFecha();
+    toast(programado
+      ? '🗓 Pedido PROGRAMADO para el ' + formatearJornada(jornada)
+      : '✔ Pedido guardado — jornada del ' + formatearJornada(jornada));
   }catch(e){
     toast('Error: ' + e.message);
   }finally{
@@ -1717,21 +2015,23 @@ async function submitOrder(){
 
 async function anularPedido(){
   if(!pedidoHoy) return;
-  if(!confirm('¿Anular su pedido guardado de hoy?\nEl pedido se eliminará de la jornada de recepción.')) return;
+  if(!confirm('¿Anular su pedido guardado ' + (esProgramado() ? 'programado para el ' + formatearJornada(jornadaActiva()) : 'de hoy') +
+      '?\nEl pedido se eliminará de la jornada de recepción.')) return;
   await anularPedidoInterno();
 }
 
 async function anularPedidoInterno(){
-  const jornada = pedidoHoy ? (pedidoHoy.jornada || calcularJornada()) : calcularJornada();
+  const jornada = pedidoHoy ? (pedidoHoy.jornada || jornadaActiva()) : jornadaActiva();
+  olvidarProgramado(jornada);
   if(offline || !hayConexion()){
     escribirLS('pend_' + CLIENTE, pendientes().filter(p=>p.jornada !== jornada));
     pedidoHoy = null;
     carrito = {};
     obsCarrito = {};
     obsExpandir.clear();
-    localStorage.removeItem('carrito_'+CLIENTE);
-    localStorage.removeItem('obs_'+CLIENTE);
-    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner();
+    localStorage.removeItem(claveCarrito(jornada));
+    localStorage.removeItem(claveObs(jornada));
+    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarBanner(); actualizarSelectorFecha();
     toast('🗑 Pedido anulado (sin conexión)');
     return;
   }
@@ -1741,10 +2041,10 @@ async function anularPedidoInterno(){
     carrito = {};
     obsCarrito = {};
     obsExpandir.clear();
-    localStorage.removeItem('carrito_'+CLIENTE);
-    localStorage.removeItem('obs_'+CLIENTE);
-    renderQuick(); refreshItemStates(); updateQuickBar();
-    toast('🗑 Pedido de hoy anulado');
+    localStorage.removeItem(claveCarrito(jornada));
+    localStorage.removeItem(claveObs(jornada));
+    renderQuick(); refreshItemStates(); updateQuickBar(); actualizarSelectorFecha();
+    toast('🗑 Pedido anulado — ' + formatearJornada(jornada));
   }catch(e){
     toast('Error: ' + e.message);
   }
