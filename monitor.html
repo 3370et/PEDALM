@@ -12,6 +12,9 @@
 :root{
   --bg:#f0f2f5; --panel:#fff; --panel-soft:#f6f8f7; --text:#22313f; --text-soft:#7f8c8d;
   --text-mute:#95a5a6; --border:#e4e9ed; --border-soft:#f0f3f5; --border-input:#dde3e8;
+  --m-line:#c9d4dd;
+  --grp1-bg:#dcebe4; --grp1-txt:#0b6b4d;
+  --grp2-bg:#eef2f1; --grp2-txt:#74847f;
   --input-bg:#fff; --green:#0e7c5a; --green-head:#0e7c5a; --green-text:#0e7c5a;
   --green-soft:#eef4f1; --green-border:#bcd9cd; --tipo-bg:#f4f7f5;
   --orange:#f39c12; --orange-text:#b9770e; --orange-soft:#fff3dd;
@@ -22,6 +25,9 @@
 body.dark{
   --bg:#12181f; --panel:#1a222c; --panel-soft:#202b37; --text:#e8eef4; --text-soft:#9aabb8;
   --text-mute:#7c8b98; --border:#2b3644; --border-soft:#243040; --border-input:#3a4a5e;
+  --m-line:#3f5268;
+  --grp1-bg:#173a2d; --grp1-txt:#3ddba0;
+  --grp2-bg:#1f2a35; --grp2-txt:#9aabb8;
   --input-bg:#141c26; --green:#12996d; --green-head:#0b684a; --green-text:#2ec894;
   --green-soft:rgba(18,162,115,.16); --green-border:#1f5c46; --tipo-bg:#1d2b27;
   --orange:#f39c12; --orange-text:#f2b34c; --orange-soft:rgba(243,156,18,.16);
@@ -127,6 +133,19 @@ tr.rowp:hover{background:var(--panel-soft)}
 .res-btn:disabled{opacity:.5;cursor:default}
 .res-info{font-size:11.5px;color:var(--text-mute);margin-left:auto}
 
+/* ===== GRUPOS SEGMENTADOS (barras de botones) ===== */
+.seg{display:inline-flex;align-items:stretch;background:var(--panel);border:1px solid var(--border);border-radius:9px;overflow:hidden}
+.seg > *{border:none;border-radius:0;border-right:1px solid var(--border);background:transparent;margin:0}
+.seg > *:last-child{border-right:none}
+.seg > .tab{padding:9px 14px;color:var(--text-soft);font-size:13.5px;font-weight:700;background:transparent}
+.seg > .tab:hover:not(.act){background:var(--panel-soft)}
+.seg > .tab.act{background:var(--green);color:#fff}
+.seg > button{color:var(--green-text);padding:9px 12px;font-size:12.5px;font-weight:700}
+.seg > button:hover{background:var(--green-soft);filter:none}
+.seg > label{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--text);cursor:pointer;border:none;border-right:1px solid var(--border);border-radius:0;background:transparent}
+.seg > label:last-child{border-right:none}
+.seg > label input{accent-color:var(--green);width:15px;height:15px}
+
 /* panel de grupos ocultos */
 .res-ocultos{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:12px;max-height:220px;overflow:auto}
 .res-oc-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;font-weight:800;margin-bottom:6px}
@@ -139,6 +158,7 @@ tr.rowp:hover{background:var(--panel-soft)}
 .matrix-wrap{overflow:auto;max-height:72vh;border:1px solid var(--border);border-radius:12px;background:var(--panel)}
 .matrix{border-collapse:collapse;font-size:12px;width:100%}
 .matrix th,.matrix td{border:1px solid var(--border-soft);padding:5px 7px;white-space:nowrap}
+.matrix th,.matrix td{border-top-color:var(--m-line);border-bottom-color:var(--m-line)}
 .matrix thead th{background:var(--tipo-bg);color:var(--green-text);font-size:11px;text-transform:uppercase;letter-spacing:.3px;height:32px}
 /* fila grupo superior (LÍNEA) */
 .matrix .row-grp th{position:sticky;top:0;z-index:4}
@@ -171,6 +191,22 @@ tr.rowp:hover{background:var(--panel-soft)}
 /* sombra en el borde de la columna congelada al desplazar horizontalmente */
 .matrix-wrap.scrolled-h .matrix th.cli-col,.matrix-wrap.scrolled-h .matrix td.cli-col{box-shadow:6px 0 8px -6px rgba(0,0,0,.18)}
 .matrix-wrap.scrolled-hr .matrix th.tot-col,.matrix-wrap.scrolled-hr .matrix td.tot-col{box-shadow:-6px 0 8px -6px rgba(0,0,0,.18)}
+/* ===== RESUMEN TRANSPUESTO (productos en filas × clientes en columnas) ===== */
+.matrix-tr thead th{position:sticky;top:0;z-index:3}
+.matrix-tr th.th-cli{min-width:96px;max-width:150px;white-space:normal;font-size:11px;text-transform:none;letter-spacing:0}
+.matrix-tr .tipo-head td{background:var(--panel-soft);font-weight:700;padding:6px 12px;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px;color:var(--text-soft);cursor:pointer;user-select:none;border-top:1px solid var(--m-line)}
+.matrix-tr .tipo-head:hover td{filter:brightness(.97)}
+.matrix-tr .hint{color:var(--text-mute);font-weight:400;font-size:11.5px}
+.matrix-tr .ph-art{max-width:130px}
+/* Acentuar la diferencia entre cabeceras de grupo: LÍNEA (grupo 1) vs TIPO (grupo 2) */
+.matrix .row-grp th{background:var(--grp1-bg);color:var(--grp1-txt)}
+.matrix .row-grp th.cli-col{background:var(--tipo-bg);color:var(--green-text)}
+.matrix .row-grp th.tot-col{background:var(--green-soft);color:var(--green-text)}
+.matrix .row-sub th{background:var(--grp2-bg);color:var(--grp2-txt);font-size:10.5px}
+.matrix-tr .lin-head td{background:var(--grp1-bg);color:var(--grp1-txt)}
+.matrix-tr .tipo-head td{background:var(--grp2-bg);color:var(--grp2-txt)}
+.matrix-tr tbody tr.lin-head:hover td{background:var(--grp1-bg)}
+.matrix-tr tbody tr.tipo-head:hover td{background:var(--grp2-bg)}
 /* ===== MODALES ===== */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{background:var(--panel);border-radius:16px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.35);max-height:88vh;overflow-y:auto}
@@ -255,19 +291,26 @@ tr.rowp:hover{background:var(--panel-soft)}
   <div class="sin-pedido" id="sin-pedido" onclick="abrirCliModal()"></div>
 
   <div class="toolbar">
-    <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
-    <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
-    <button class="tab" id="tab-res" onclick="setTab('res')">🧮 Resumen</button>
+    <div class="seg" role="tablist">
+      <button class="tab act" id="tab-cons" onclick="setTab('cons')">📊 Consolidado</button>
+      <button class="tab" id="tab-cli" onclick="setTab('cli')">👥 Por cliente</button>
+      <button class="tab" id="tab-res" onclick="setTab('res')">🧮 Resumen</button>
+    </div>
     <input id="search" placeholder="🔍 Filtrar por artículo, código o cliente..." oninput="render()">
-    <button class="csv-btn" onclick="copiarConsolidado()" title="Copiar artículos y totales del consolidado, sin detalle de clientes">📋 Copiar consolidado</button>
-    <button class="csv-btn" onclick="exportCSV()">📄 Exportar CSV</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg">
+      <button class="csv-btn" onclick="copiarConsolidado()" title="Copiar artículos y totales del consolidado, sin detalle de clientes">📋 Consolidado</button>
+      <button class="csv-btn" onclick="exportCSV()" title="Descargar el CSV de la pestaña activa">📄 Exportar CSV</button>
+      <button class="csv-btn" onclick="copiarCSV()" title="Copiar el mismo contenido del CSV de la pestaña activa (con el separador elegido; con tabulación pega directo en Excel)">📋 Copiar CSV</button>
+    </div>
     <select id="csv-del" class="csv-del" onchange="guardarDelimitador()" title="Separador de columnas del archivo CSV">
-      <option value=",">Separador: coma</option>
-      <option value=";">Separador: punto y coma</option>
-      <option value="tab">Separador: tabulación</option>
-      <option value="|">Separador: pipe |</option>
+      <option value=",">Coma</option>
+      <option value=";">Punto y coma</option>
+      <option value="tab">Tabulación</option>
+      <option value="|">Pipe |</option>
     </select>
-    <button class="csv-btn" onclick="copiarCSV()" title="Copiar al portapapeles el mismo contenido del CSV por cliente (con el separador elegido; con tabulación pega directo en Excel)">📋 Copiar CSV</button>
   </div>
 
   <div id="sec-cons"></div>
@@ -362,6 +405,8 @@ const resHideLin = new Set();   /* líneas OCULTAS en el resumen matriz */
 const resHideTipo = new Set();  /* claves "lin||tipo" (TIPO) OCULTAS en el resumen matriz */
 let resOcultarVacios = true;    /* resumen matriz: ocultar productos sin pedido */
 let resPanelOcultos = false;    /* resumen matriz: panel de grupos ocultos abierto */
+let resTranspuesto = false;     /* resumen matriz: filas y columnas intercambiadas */
+let resSoloTotales = false;     /* resumen matriz: ocultar clientes y mostrar solo totales */
 
 const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -1030,11 +1075,19 @@ function renderResumen(){
 
   let html = '<div class="res-bar">' +
     '<span class="lbl">🧮 Resumen matriz</span>' +
-    '<label title="Ocultar los productos que ningún cliente pidió"><input type="checkbox" id="res-vacios" ' + (resOcultarVacios?'checked':'') + ' onchange="resOcultarVacios=this.checked;renderResumen()"> Ocultar vacíos</label>' +
-    '<button class="res-btn" onclick="contraerTodoRes()">⤢ Contraer todo</button>' +
-    '<button class="res-btn" onclick="expandirTodoRes()">⤡ Expandir todo</button>' +
-    '<button class="res-btn" onclick="copiarResumen()" title="Copiar la tabla visible con el separador elegido">📋 Copiar resumen</button>' +
-    '<button class="res-btn" ' + (nOcultos?'':'disabled') + ' onclick="toggleOcultosPanel()">👁 Ocultos (' + nOcultos + ')</button>' +
+    '<div class="seg">' +
+      '<label title="Ocultar los productos que ningún cliente pidió"><input type="checkbox" id="res-vacios" ' + (resOcultarVacios?'checked':'') + ' onchange="resOcultarVacios=this.checked;renderResumen()"> Vacíos</label>' +
+      '<label title="Intercambia filas y columnas: productos en filas y clientes en columnas"><input type="checkbox" id="res-transp" ' + (resTranspuesto?'checked':'') + ' onchange="resTranspuesto=this.checked;renderResumen()"> Transponer</label>' +
+      '<label title="Oculta los clientes y deja solo los totales por producto"><input type="checkbox" id="res-solotot" ' + (resSoloTotales?'checked':'') + ' onchange="resSoloTotales=this.checked;renderResumen()"> Solo totales</label>' +
+    '</div>' +
+    '<div class="seg">' +
+      '<button class="res-btn" onclick="contraerTodoRes()" title="Contraer todos los grupos">⤢ Contraer</button>' +
+      '<button class="res-btn" onclick="expandirTodoRes()" title="Expandir todos los grupos">⤡ Expandir</button>' +
+    '</div>' +
+    '<div class="seg">' +
+      '<button class="res-btn" onclick="copiarResumen()" title="Copiar la tabla visible con el separador elegido">📋 Copiar</button>' +
+      '<button class="res-btn" ' + (nOcultos?'':'disabled') + ' onclick="toggleOcultosPanel()" title="Ver y restaurar los grupos ocultos">👁 Ocultos (' + nOcultos + ')</button>' +
+    '</div>' +
     '<span class="res-info">' + clis.length + ' clientes · ' + prods.length + ' productos · ' + nLin + ' líneas · ' + nTipos + ' tipos</span>' +
     '</div>';
 
@@ -1046,6 +1099,14 @@ function renderResumen(){
 
   if(!clis.length || !prods.length){
     el.innerHTML = html + '<div class="empty">No hay datos para armar el resumen.</div>';
+    return;
+  }
+
+  if(resTranspuesto){
+    html += tablaTranspuestaHTML(prods, clis, totPorProd);
+    html += '<p style="font-size:11.5px;color:var(--text-mute);margin-top:8px">💡 Vista transpuesta: <b>productos en filas</b> (agrupados por LÍNEA → TIPO) y <b>clientes en columnas</b> · clic en LÍNEA/TIPO para contraer/desplegar · <b>✕</b> oculta el grupo · "Copiar resumen" copia esta vista con el separador elegido · la columna <b>PRODUCTO</b> (izquierda) y la de <b>TOTAL</b> (derecha) quedan congeladas.</p>';
+    el.innerHTML = html;
+    attachMatrixScroll(el);
     return;
   }
 
@@ -1079,7 +1140,7 @@ function renderResumen(){
   html += '<div class="matrix-wrap"><table class="matrix"><thead>';
 
   /* fila LÍNEA (grupo superior) — clic contrae/despliega, ✕ oculta */
-  html += '<tr class="row-grp"><th class="cli-col" rowspan="3">CLIENTE</th>';
+  html += '<tr class="row-grp"><th class="cli-col" rowspan="3">' + (resSoloTotales ? 'TOTAL' : 'CLIENTE') + '</th>';
   linCells.forEach(t=>{
     const ind = t.collapsed ? '▸' : '▾';
     const tip = t.collapsed ? 'Clic para expandir' : 'Clic para contraer';
@@ -1114,7 +1175,7 @@ function renderResumen(){
   html += '</tr></thead><tbody>';
 
   /* filas de clientes */
-  clis.forEach(c=>{
+  if(!resSoloTotales) clis.forEach(c=>{
     const p = data[c];
     const items = p.items || {};
     html += '<tr><td class="cli-col">' + esc(p.nombreCliente||c) + ' <span class="cod">' + esc(c) + '</span></td>';
@@ -1127,38 +1188,101 @@ function renderResumen(){
         html += '<td class="num-cell zero"></td>';
       }
     });
-    const uni = Object.keys(items).reduce((s,k)=>s+(items[k].cantidad||0),0);
+    const uni = cols.reduce((s,col)=> col.kind === 'prod' ? s + ((items[col.cod] && items[col.cod].cantidad) || 0) : s, 0);
     html += '<td class="num-cell tot-col">' + uni + '</td></tr>';
   });
 
   /* fila TOTAL */
   html += '<tr class="tot-row"><td class="cli-col">TOTAL</td>';
+  let grand = 0;
   cols.forEach(col=>{
     if(col.kind === 'prod'){
       const t = totPorProd[col.cod]||0;
+      grand += t;
       html += '<td class="num-cell tot-col' + (t?'':' zero') + '">' + (t?t:'') + '</td>';
     } else {
       html += '<td class="num-cell tot-col zero"></td>';
     }
   });
-  const grand = Object.values(totPorProd).reduce((s,v)=>s+v,0);
   html += '<td class="num-cell tot-col">' + grand + '</td></tr>';
 
   html += '</tbody></table></div>';
   html += '<p style="font-size:11.5px;color:var(--text-mute);margin-top:8px">💡 Clic en una <b>LÍNEA</b> (grupo superior) o un <b>TIPO</b> (subgrupo) para contraer/desplegar · <b>✕</b> oculta el grupo (botón "Ocultos" lo restaura) · "Ocultar vacíos" esconde productos sin pedidos · "Copiar resumen" copia la tabla visible con el separador elegido · la columna <b>CLIENTE</b> (izquierda) y la de <b>TOTAL</b> (derecha) quedan congeladas al desplazar.</p>';
 
   el.innerHTML = html;
+  attachMatrixScroll(el);
+}
 
-  /* Congelado visual: sombra en el borde de la columna congelada al desplazar. */
+/* Congelado visual: sombra en el borde de las columnas congeladas al desplazar. */
+function attachMatrixScroll(el){
   const wrap = el.querySelector('.matrix-wrap');
-  if(wrap){
-    const sync = ()=>{
-      wrap.classList.toggle('scrolled-h', wrap.scrollLeft > 0);
-      wrap.classList.toggle('scrolled-hr', wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 1);
-    };
-    sync();
-    wrap.addEventListener('scroll', sync, {passive:true});
-  }
+  if(!wrap) return;
+  const sync = ()=>{
+    wrap.classList.toggle('scrolled-h', wrap.scrollLeft > 0);
+    wrap.classList.toggle('scrolled-hr', wrap.scrollLeft + wrap.clientWidth < wrap.scrollWidth - 1);
+  };
+  sync();
+  wrap.addEventListener('scroll', sync, {passive:true});
+}
+
+/* Tabla transpuesta: productos (filas, agrupados por LÍNEA → TIPO) × clientes (columnas). */
+function tablaTranspuestaHTML(prods, clis, totPorProd){
+  const cols = resSoloTotales ? [] : clis;
+  const totalCols = cols.length + 2;
+  const visProds = prods.filter(p=> !resColLin.has(p.lin) && !resColTipo.has(p.lin + '||' + p.tipo));
+  let h = '<div class="matrix-wrap"><table class="matrix matrix-tr"><thead><tr>';
+  h += '<th class="cli-col">PRODUCTO</th>';
+  cols.forEach(c=>{
+    h += '<th class="th-cli" title="' + esc(c) + '">' + esc(data[c].nombreCliente || c) +
+         '<div class="ph-cod">' + esc(c) + '</div></th>';
+  });
+  h += '<th class="tot-col">TOTAL</th></tr></thead><tbody>';
+
+  let linAct = null, tipoAct = null, linColl = false, tipoColl = false;
+  prods.forEach(p=>{
+    if(p.lin !== linAct){
+      linAct = p.lin; tipoAct = null;
+      linColl = resColLin.has(p.lin);
+      const la = resArg(p.lin);
+      h += '<tr class="lin-head"><td colspan="' + totalCols + '" onclick="toggleLinRes(\'' + la + '\')" title="' +
+           (linColl ? 'Clic para expandir' : 'Clic para contraer') + '">' +
+           '<b>' + esc(p.lin.toUpperCase()) + '</b> <span class="hint">' + (linColl ? '▸' : '▾') + '</span>' +
+           '<button class="grp-hide" onclick="event.stopPropagation();hideLinRes(\'' + la + '\')" title="Ocultar esta línea">✕</button></td></tr>';
+    }
+    if(linColl) return;
+    if(p.tipo !== tipoAct){
+      tipoAct = p.tipo;
+      const key = p.lin + '||' + p.tipo;
+      tipoColl = resColTipo.has(key);
+      const ka = resArg(key);
+      h += '<tr class="tipo-head"><td colspan="' + totalCols + '" onclick="toggleTipoRes(\'' + ka + '\')" title="' +
+           (tipoColl ? 'Clic para expandir' : 'Clic para contraer') + '">' + esc(p.tipo) +
+           ' <span class="hint">' + (tipoColl ? '▸' : '▾') + '</span>' +
+           '<button class="grp-hide" onclick="event.stopPropagation();hideTipoRes(\'' + ka + '\')" title="Ocultar este tipo">✕</button></td></tr>';
+    }
+    if(tipoColl) return;
+    h += '<tr><td class="cli-col"><div class="ph-art">' + esc(p.art) + '</div><div class="ph-cod">' + esc(p.cod) + '</div></td>';
+    cols.forEach(c=>{
+      const it = (data[c].items || {})[p.cod];
+      const cant = it ? (it.cantidad || 0) : 0;
+      h += '<td class="num-cell' + (cant ? '' : ' zero') + '">' + (cant ? cant : '') + '</td>';
+    });
+    const t = totPorProd[p.cod] || 0;
+    h += '<td class="num-cell tot-col' + (t ? '' : ' zero') + '">' + (t ? t : '') + '</td></tr>';
+  });
+
+  h += '<tr class="tot-row"><td class="cli-col">TOTAL</td>';
+  let grand = 0;
+  cols.forEach(c=>{
+    const items = data[c].items || {};
+    const uni = visProds.reduce((s,p)=> s + ((items[p.cod] && items[p.cod].cantidad) || 0), 0);
+    grand += uni;
+    h += '<td class="num-cell' + (uni ? '' : ' zero') + '">' + (uni ? uni : '') + '</td>';
+  });
+  if(resSoloTotales) grand = visProds.reduce((s,p)=> s + (totPorProd[p.cod] || 0), 0);
+  h += '<td class="num-cell tot-col">' + grand + '</td></tr>';
+  h += '</tbody></table></div>';
+  return h;
 }
 
 /* ---- colapsar / desplegar ---- */
@@ -1219,8 +1343,34 @@ function resFilasCSV(){
   clis.sort((a,b)=> (data[a].nombreCliente||a).localeCompare(data[b].nombreCliente||b));
   if(!clis.length || !prods.length) return null;
 
+  /* Vista transpuesta: productos en filas × clientes en columnas */
+  if(resTranspuesto){
+    const cols = resSoloTotales ? [] : clis;
+    const rows = [['LINEA','TIPO','PRODUCTO'].concat(cols.map(c=>data[c].nombreCliente||c)).concat(['TOTAL'])];
+    prods.forEach(p=>{
+      const row = [p.lin, p.tipo, p.art + ' (' + p.cod + ')'];
+      cols.forEach(c=>{
+        const it = (data[c].items || {})[p.cod];
+        row.push(it ? (it.cantidad || 0) : 0);
+      });
+      row.push(totPorProd[p.cod] || 0);
+      rows.push(row);
+    });
+    const tr = ['','','TOTAL'];
+    let grand = 0;
+    cols.forEach(c=>{
+      const items = data[c].items || {};
+      const uni = prods.reduce((s,p)=> s + ((items[p.cod] && items[p.cod].cantidad) || 0), 0);
+      tr.push(uni); grand += uni;
+    });
+    if(resSoloTotales) grand = prods.reduce((s,p)=> s + (totPorProd[p.cod] || 0), 0);
+    tr.push(grand);
+    rows.push(tr);
+    return {rows: rows, nombre: 'resumen_' + selFecha + '.csv'};
+  }
+
   /* 3 filas de cabecera: LÍNEA / TIPO / PRODUCTO */
-  const h1 = ['CLIENTE'], h2 = [''], h3 = [''];
+  const h1 = [resSoloTotales ? 'TOTAL' : 'CLIENTE'], h2 = [''], h3 = [''];
   prods.forEach(p=>{
     h1.push(p.lin);
     h2.push(p.tipo);
@@ -1229,7 +1379,7 @@ function resFilasCSV(){
   h1.push('TOTAL'); h2.push(''); h3.push('');
 
   const rows = [h1, h2, h3];
-  clis.forEach(c=>{
+  if(!resSoloTotales) clis.forEach(c=>{
     const p = data[c];
     const items = p.items || {};
     const row = [p.nombreCliente || c];
@@ -1262,8 +1412,9 @@ function copiarResumen(){
   const r = resFilasCSV();
   if(!r){ toast('Nada que copiar'); return; }
   const txt = csvDesdeFilas(r.rows);   /* sin BOM para portapapeles */
-  const nProd = r.rows[0].length - 2;  /* CLIENTE + TOTAL */
-  const nCli = r.rows.length - 4;      /* 3 cabeceras + 1 total */
+  let nProd, nCli;
+  if(resTranspuesto){ nProd = r.rows.length - 2; nCli = r.rows[0].length - 4; }
+  else { nProd = r.rows[0].length - 2; nCli = r.rows.length - 4; }
   const done = ()=> toast('📋 Resumen copiado: ' + nCli + ' clientes · ' + nProd + ' productos · separador ' + nombreDelimitador());
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(done).catch(()=>fallbackCopiar(txt, done));
